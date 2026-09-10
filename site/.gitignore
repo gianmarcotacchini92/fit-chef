@@ -1,0 +1,6 @@
+/.next/
+/out/
+/public/
+/test-results/
+/playwright-report/
+*.tsbuildinfo

@@ -1,0 +1,29 @@
+// Add this match INSIDE /databases/{database}/documents in the existing rules.
+// Do not replace the rules for PAC ETF, TempoFit or other applications.
+// Existing broader allow rules also apply: they must not grant access to other UIDs.
+match /fitChefUsers/{userId} {
+  function ownsDocument() {
+    return request.auth != null && request.auth.uid == userId;
+  }
+  function validWorkspace() {
+    return request.resource.data.keys().hasOnly([
+      'schemaVersion', 'revision', 'data', 'deleted', 'updatedAt'
+    ])
+      && request.resource.data.schemaVersion == 1
+      && request.resource.data.revision is string
+      && request.resource.data.revision.matches(
+        '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      )
+      && request.resource.data.data is string
+      && request.resource.data.data.size() <= 921600
+      && request.resource.data.deleted is bool
+      && (request.resource.data.deleted == false || request.resource.data.data == '')
+      && request.resource.data.updatedAt == request.time;
+  }
+  allow get: if ownsDocument();
+  allow list: if false;
+  allow create: if ownsDocument() && validWorkspace();
+  allow update: if ownsDocument() && validWorkspace()
+    && request.resource.data.revision != resource.data.revision;
+  allow delete: if false;
+}

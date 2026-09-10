@@ -1,0 +1,14 @@
+{
+  "name": "FIT Chef",
+  "short_name": "FIT Chef",
+  "description": "Ricette personalizzate, dieta privata e sincronizzazione tra dispositivi.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f9f3",
+  "theme_color": "#365c3c",
+  "lang": "it",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
