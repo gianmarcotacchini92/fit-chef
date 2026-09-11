@@ -25,6 +25,16 @@ Gli extra proposti devono essere compatibili con gli alimenti di base e con una 
 
 Le aggiunte sono disponibilita massime, non ingredienti fittizi: una proposta non autorizza alcun alimento finche non viene confermata. La modalita frigo conserva il proprio comportamento.
 
+### Rotazione dello stesso pasto
+
+Lo storico da inviare al generatore viene scelto dando precedenza alle ricette gia create con gli stessi alimenti di base, anche se nel frattempo sono stati preparati molti altri pasti. Il motore considera tutte le 30 impronte inviate, non soltanto le ultime 20.
+
+Prima cerca preparazioni non ancora proposte. Quando sono gia state viste tutte, evita l'ultima tipologia mostrata se esistono alternative compatibili e riparte da quelle usate meno di recente. **Fammi un'altra** evita anche la ricetta attualmente aperta, se diversa dall'ultima generata. La rotazione usa le date delle ricette salvate: continua dopo un ricaricamento o la sincronizzazione, senza creare duplicati artificiali nel ricettario.
+
+Questa logica non puo inventare alternative assenti dal catalogo o superare i vincoli: se rimane una sola preparazione possibile, l'app lo dichiara. Grammature, ingredienti confermati, allergie e sicurezza non vengono allentati per ottenere un risultato diverso.
+
+Pesce bianco, lattuga e pane hanno ora anche barchette con crumble e tartine tostate. Il mix di mare gia cotto puo diventare panzanella oppure coppe di lattuga con pane croccante. Insieme alle preparazioni iniziali sono tre opzioni per ciascuna alternativa, disponibili entro 35 minuti anche per due porzioni; limiti di tempo piu stretti possono ridurre la scelta.
+
 Per pollo o tacchino, finocchi e pane sono disponibili preparazioni al crumble tostato con slaw oppure tartine con carne sfilacciata e finocchi brasati. Richiedono 30-32 minuti per una porzione, 35 per due; usano il pane gia prescritto e incorporano gli extra confermati nella preparazione. Una versione semplice resta disponibile se i vincoli escludono le trasformazioni. Esaurite le varianti compatibili, l'app dichiara la ripetizione invece di presentare il vecchio piatto semplice come una nuova idea.
 
 ## Account Google e sincronizzazione
@@ -131,7 +141,7 @@ Le immagini AI locali sono in `.data`: la sincronizzazione conserva i riferiment
 
 ## Persistenza, limiti e privacy
 
-Il browser conserva `fit-chef.workspace.v1`: piano, input, fino a 100 ricette e 50 preferiti. La diversita considera le ultime 30 ricette. Il documento cloud ha un limite applicativo di 900 KiB; un workspace troppo grande viene segnalato senza tagliare silenziosamente dati.
+Il browser conserva `fit-chef.workspace.v1`: piano, input, fino a 100 ricette e 50 preferiti. Per la diversita vengono selezionate fino a 30 ricette conservate, dando priorita allo stesso pasto e poi alle altre piu recenti. Il documento cloud ha un limite applicativo di 900 KiB; un workspace troppo grande viene segnalato senza tagliare silenziosamente dati.
 
 I dati locali, importati e ricevuti dal cloud sono validati. Dati incompatibili sospendono la sovrascrittura e possono essere esportati. Generare una ricetta o segnarla come cucinata non scala automaticamente le scorte.
 

@@ -16,6 +16,7 @@ import { localStateSchema, recipeSchema } from "@/lib/validation";
 import { confirmChefExtras, getChefExtraProposal, mealGenerationInput, type ChefExtraProposal as ChefProposal } from "@/lib/meal";
 import { getCloudClient } from "@/lib/cloud";
 import { clearCloudBinding } from "@/lib/cloud-storage";
+import { selectGenerationHistory } from "@/lib/recipe-history";
 import { applyWeeklyMeal, initialWeeklyDietState, weeklyMealIsApplied, weeklyMealKey } from "@/lib/weekly-diet";
 import type { Equipment, GenerateRequest, GenerationResponse, LocalState, PantryItem, Preferences, Recipe, RecipeInput, Targets, VariantRequest } from "@/lib/types";
 import { FoodArt } from "./food-art";
@@ -293,7 +294,7 @@ export function ChefApp() {
     const nonce = crypto.randomUUID();
     try {
       const request: GenerateRequest = {
-        ...nextInput, nonce, history: workspace.recipes.slice(0, 30).map((recipe) => recipe.fingerprint),
+        ...nextInput, nonce, history: selectGenerationHistory(workspace.recipes, nextInput),
         ...(variant ? { variant } : {}),
       };
       let result: GenerationResponse;
@@ -316,11 +317,14 @@ export function ChefApp() {
         setGenerationError({ message: result.message, details: result.details });
         return;
       }
+      const recipeNotices: string[] = [];
       if (builderMode !== "pantry") {
         const unused = nextInput.pantry.filter((item) => item.mode === "preferred"
           && !result.recipe.ingredients.some((used) => used.ingredientId === item.ingredientId));
-        if (unused.length) setNotice(`Questa variante non usa ${unused.map((item) => getIngredient(item.ingredientId)?.name ?? item.ingredientId).join(", ")}. Queste aggiunte non sono conteggiate nei macros e restano disponibili per un'altra versione.`);
+        if (unused.length) recipeNotices.push(`Questa variante non usa ${unused.map((item) => getIngredient(item.ingredientId)?.name ?? item.ingredientId).join(", ")}. Queste aggiunte non sono conteggiate nei macros e restano disponibili per un'altra versione.`);
       }
+      if (variant?.kind === "another" && result.recipe.id === variant.baselineRecipeId) recipeNotices.push(result.recipe.variantTip);
+      if (recipeNotices.length) setNotice(recipeNotices.join(" "));
       setWorkspace((current) => {
         const recipes = retainRecipes([result.recipe, ...current.recipes.filter((recipe) => recipe.id !== result.recipe.id)], current.favoriteIds);
         const retainedIds = new Set(recipes.map((recipe) => recipe.id));

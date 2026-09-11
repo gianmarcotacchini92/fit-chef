@@ -73,6 +73,14 @@ export function buildTitle(template: Template, ingredients: RecipeItem[]): strin
       return `Merluzzo cotto in padella${seasoning}, lattuga${has("bread") ? " e pane" : ""}`;
     case "seafood-bread-salad":
       return `Piatto di mare già cotto con lattuga${has("bread") ? " e pane" : ""}`;
+    case "cod-lettuce-boats":
+      return `Barchette di lattuga con merluzzo e crumble di pane tostato${has("greek-yogurt") ? ", crema di yogurt" : ""}`;
+    case "cod-toasted-tartines":
+      return `Tartine tostate di merluzzo e lattuga appassita${has("paprika") ? " alla paprika" : ""}`;
+    case "seafood-panzanella":
+      return `Panzanella di pane reidratato, mare già cotto e lattuga${has("lemon") ? " al limone" : ""}`;
+    case "seafood-lettuce-cups":
+      return `Coppe di lattuga con mare già cotto e pane in due consistenze${has("greek-yogurt") ? " allo yogurt" : ""}`;
     case "poultry-fennel-plate":
       return `Bocconcini di ${names("proteina")}${seasoning} con finocchi crudi${has("bread") ? " e pane" : ""}`;
     case "poultry-fennel-crunch":

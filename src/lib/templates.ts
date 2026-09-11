@@ -53,6 +53,11 @@ const savoryMeals: Preferences["meal"][] = ["lunch", "dinner"];
 const sweetMeals: Preferences["meal"][] = ["breakfast", "snack", "dessert"];
 const coffee = slot("bevanda", ["coffee"], 5, 600, 30, false);
 const breadSide = slot("pane", ["bread"], 10, 180, 70, false);
+const fishChefExtras = [
+  slot("crema", ["greek-yogurt"], 10, 100, 40, false),
+  slot("acidità", ["lemon"], 3, 25, 15, false),
+  slot("spezie", ["paprika"], 0.5, 2, 1, false), oil, salt,
+];
 
 export const TEMPLATES: Template[] = [
   {
@@ -405,6 +410,54 @@ export const TEMPLATES: Template[] = [
     slots: [
       slot("proteina", ["seafood-salad"], 60, 500, 350),
       slot("verdure", ["lettuce"], 10, 400, 100), breadSide, oil, acid, salt, spice,
+    ], ratios: [],
+  },
+  {
+    id: "cod-lettuce-boats", title: "Barchette di lattuga con merluzzo e crumble",
+    description: "Merluzzo cotto e sfaldato nelle foglie crude di lattuga; tutto il pane pesato viene tostato in un crumble da aggiungere solo alla fine, non usato come falsa panatura.",
+    family: "wrap", cuisine: "mediterranea", technique: "cottura del merluzzo e farcitura di foglie crude con crumble",
+    taste: "savory", meals: savoryMeals, equipment: ["pan", "stove", "thermometer"],
+    minutes: 29, extraServingMinutes: 5, difficulty: "easy", mealPrep: true,
+    slots: [
+      slot("proteina", ["white-fish"], 60, 450, 185),
+      slot("verdure", ["lettuce"], 20, 400, 125),
+      slot("pane", ["bread"], 20, 180, 64), ...fishChefExtras,
+    ], ratios: [],
+  },
+  {
+    id: "cod-toasted-tartines", title: "Tartine di merluzzo e lattuga appassita",
+    description: "Il pane tostato sostiene una farcitura calda di merluzzo sfaldato e lattuga appassita nel fondo già cotto del pesce; l'eventuale crema lega il ripieno fuori dal fuoco.",
+    family: "wrap", cuisine: "mediterranea", technique: "tostatura del pane e farcitura calda con lattuga appassita",
+    taste: "savory", meals: savoryMeals, equipment: ["pan", "stove", "thermometer"],
+    minutes: 30, extraServingMinutes: 5, difficulty: "easy", mealPrep: true,
+    slots: [
+      slot("proteina", ["white-fish"], 60, 450, 185),
+      slot("verdure", ["lettuce"], 20, 400, 125),
+      slot("pane", ["bread"], 20, 180, 64), ...fishChefExtras,
+    ], ratios: [],
+  },
+  {
+    id: "seafood-panzanella", title: "Panzanella di mare e lattuga",
+    description: "Insalata di pane reidratato con acqua misurata, lattuga e mix di mare già cotto e sgocciolato: una panzanella senza ingredienti sottintesi, non pesce da cuocere.",
+    family: "salad", cuisine: "mediterranea", technique: "reidratazione del pane e assemblaggio freddo di mare cotto",
+    taste: "savory", meals: savoryMeals, equipment: [],
+    minutes: 12, extraServingMinutes: 2, difficulty: "easy", mealPrep: false,
+    slots: [
+      slot("proteina", ["seafood-salad"], 60, 500, 230),
+      slot("verdure", ["lettuce"], 20, 400, 125),
+      slot("pane", ["bread"], 20, 180, 64), ...fishChefExtras,
+    ], ratios: [],
+  },
+  {
+    id: "seafood-lettuce-cups", title: "Coppe di lattuga con mare e pane tostato",
+    description: "Foglie crude farcite con mix di mare già cotto, pane tostato e un eventuale condimento misurato; una parte del pane entra nel ripieno e il resto completa le coppe al momento di servire.",
+    family: "wrap", cuisine: "mediterranea", technique: "tostatura del pane e farcitura fredda di coppe di lattuga",
+    taste: "savory", meals: savoryMeals, equipment: ["pan", "stove"],
+    minutes: 15, extraServingMinutes: 2, difficulty: "easy", mealPrep: false,
+    slots: [
+      slot("proteina", ["seafood-salad"], 60, 500, 230),
+      slot("verdure", ["lettuce"], 20, 400, 125),
+      slot("pane", ["bread"], 20, 180, 64), ...fishChefExtras,
     ], ratios: [],
   },
   {

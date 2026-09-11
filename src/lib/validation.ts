@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GENERATION_HISTORY_LIMIT } from "./recipe-history";
 import type { GenerateRequest, LocalState, Recipe, WeeklyPlan } from "./types";
 
 const text = (max: number) => z.string().min(1).max(max).refine(
@@ -81,7 +82,7 @@ const fingerprintSchema = z.strictObject({
 });
 
 export const generationRequestSchema = recipeInputSchema.extend({
-  history: z.array(fingerprintSchema).max(30),
+  history: z.array(fingerprintSchema).max(GENERATION_HISTORY_LIMIT),
   nonce: z.string().min(1).max(128).regex(/^[a-zA-Z0-9_.:-]+$/),
   variant: z.strictObject({
     kind: z.enum(["another", "faster", "protein", "lighter", "sweet", "substitute"]),

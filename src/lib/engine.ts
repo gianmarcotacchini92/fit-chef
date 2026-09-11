@@ -4,6 +4,7 @@ import { COSMETIC_ROLES, MACROS, optimizeTemplate, tolerance } from "./engine-op
 import { buildSteps } from "./engine-steps";
 import { buildTitle } from "./engine-titles";
 import { TEMPLATES, type Template } from "./templates";
+import { GENERATION_HISTORY_LIMIT, historyMatchesMeal } from "./recipe-history";
 import type {
   GenerateRequest, GenerationResponse, Ingredient, Nutrients, PantryItem,
   Recipe, RecipeFingerprint, RecipeInput,
@@ -157,7 +158,34 @@ function compatible(ingredient: Ingredient, request: GenerateRequest): boolean {
 }
 
 function recentHistory(history: RecipeFingerprint[]): RecipeFingerprint[] {
-  return [...history].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20);
+  return [...history].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, GENERATION_HISTORY_LIMIT);
+}
+
+type RecipeCandidate = { recipe: Recipe; score: number; repeat: boolean };
+
+function rotationPool(candidates: RecipeCandidate[], history: RecipeFingerprint[], request: GenerateRequest): RecipeCandidate[] {
+  const related = history.filter((entry) => historyMatchesMeal(entry, request));
+  const baseline = request.variant?.kind === "another"
+    ? candidates.find((entry) => entry.recipe.id === request.variant?.baselineRecipeId)?.recipe.fingerprint
+    : undefined;
+  const previous = baseline ?? related[0];
+  let alternatives = candidates;
+  if (previous) {
+    const otherFormats = alternatives.filter((entry) => entry.recipe.templateId !== previous.templateId);
+    const otherStructures = alternatives.filter((entry) => entry.recipe.fingerprint.signature !== previous.signature);
+    if (otherFormats.length) alternatives = otherFormats;
+    else if (otherStructures.length) alternatives = otherStructures;
+  }
+  if (request.variant?.kind === "another") {
+    const otherPlans = alternatives.filter((entry) => entry.recipe.id !== request.variant?.baselineRecipeId);
+    if (otherPlans.length) alternatives = otherPlans;
+  }
+  const unseen = alternatives.filter((entry) => !entry.repeat);
+  if (unseen.length) return unseen;
+  // Recipe snapshots already retain the last generation time, even when their stable ID is reused.
+  const lastUsed = (entry: RecipeCandidate) => related.find((previous) => previous.templateId === entry.recipe.templateId)?.createdAt ?? "";
+  const oldest = alternatives.map(lastUsed).sort()[0];
+  return alternatives.filter((entry) => lastUsed(entry) === oldest);
 }
 
 async function makeFingerprint(template: Template, items: Recipe["ingredients"], createdAt: string): Promise<RecipeFingerprint> {
@@ -379,7 +407,7 @@ export async function generateRecipe(request: GenerateRequest): Promise<Generati
       ? ["Pollo e tacchino crudi, uova, albume, macinato di manzo e merluzzo crudo richiedono un termometro alimentare per queste preparazioni verificate."] : []),
   ]);
   const history = recentHistory(request.history);
-  const candidates: Array<{ recipe: Recipe; score: number; repeat: boolean }> = [];
+  const candidates: RecipeCandidate[] = [];
   const templates = TEMPLATES.filter((template) => {
     const p = request.preferences;
     const minutes = template.minutes + template.extraServingMinutes * (p.servings - 1);
@@ -432,13 +460,14 @@ export async function generateRecipe(request: GenerateRequest): Promise<Generati
     ? candidates.filter((entry) => entry.recipe.templateId !== "poultry-fennel-plate"
       || (entry.recipe.targetStatus === "matched" && transformed.every((candidate) => candidate.recipe.targetStatus !== "matched")))
     : candidates;
-  const unique = eligible.filter((entry) => !entry.repeat);
-  const pool = unique.length ? unique : eligible;
+  const pool = rotationPool(eligible, history, request);
   pool.sort((a, b) => a.score - b.score || a.recipe.planHash.localeCompare(b.recipe.planHash));
   const selected = pool[0].recipe;
-  if (!unique.length) {
-    selected.warnings.push("Ripetizione esplicita: tutte le strutture realizzabili sono già nelle ultime 20 ricette o coincidono con la base. Questa è una ripetizione, non una nuova ricetta; i vincoli nutrizionali non sono dichiarati impossibili per la sola cronologia.");
-    selected.variantTip = "Con questi vincoli restano solo preparazioni già proposte. Aggiungi ingredienti compatibili o cambia volontariamente preferenze per ottenere vera varietà.";
+  if (pool[0].repeat) {
+    selected.warnings.push("Ripetizione esplicita: questa preparazione e gia presente nello storico considerato. Viene riproposta nella rotazione delle alternative compatibili, non spacciata per una nuova ricetta.");
+    selected.variantTip = new Set(eligible.map((entry) => entry.recipe.fingerprint.signature)).size > 1
+      ? "Le preparazioni compatibili ruotano partendo da quelle usate meno di recente. Puoi confermare altri ingredienti per ampliare la scelta."
+      : "Con questi ingredienti e vincoli e disponibile una sola preparazione verificata. Per un piatto diverso servono altre aggiunte confermate oppure un cambiamento volontario di tempo o preferenze.";
   }
   if (selected.targetStatus === "closest") selected.warnings.push("Soluzione più vicina trovata tra gli archetipi verificati: uno o più target morbidi sono fuori tolleranza. Il limite calorico rigido, se impostato, resta rispettato.");
   return { status: "ok", recipe: selected };

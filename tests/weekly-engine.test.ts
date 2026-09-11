@@ -101,6 +101,10 @@ for (const fixture of fixtures) {
       const result = await recipe(input);
       if (fixture.template === "poultry-fennel-plate") {
         assert.ok(["poultry-fennel-crunch", "poultry-fennel-tartines"].includes(result.templateId));
+      } else if (fixture.template === "white-fish-bread-salad") {
+        assert.ok(["white-fish-bread-salad", "cod-lettuce-boats", "cod-toasted-tartines"].includes(result.templateId));
+      } else if (fixture.template === "seafood-bread-salad") {
+        assert.ok(["seafood-bread-salad", "seafood-panzanella", "seafood-lettuce-cups"].includes(result.templateId));
       } else {
         assert.equal(result.templateId, fixture.template);
       }
@@ -293,7 +297,11 @@ test("product warnings, original inputs and numeric nutrition survive recipe ser
     const snapshot: Recipe = JSON.parse(JSON.stringify(result));
     assert.deepEqual(snapshot, result);
     const repeated = await recipe({ ...input, history: [result.fingerprint], nonce: "repeat" });
-    assert.ok(repeated.warnings.some((warning) => /Ripetizione esplicita/.test(warning)));
+    if (template === "seafood-bread-salad") {
+      assert.notEqual(repeated.templateId, result.templateId);
+    } else {
+      assert.ok(repeated.warnings.some((warning) => /Ripetizione esplicita/.test(warning)));
+    }
     assert.deepEqual(snapshot, result);
   }
 });

@@ -133,15 +133,15 @@ test("default pantry yields two genuinely distinct preparations, then warns on r
   assert.ok([first.templateId, second.templateId].includes(third.templateId));
 });
 
-test("history excludes only latest 20 exact structures, not old ones", async () => {
+test("all 30 supplied history entries are considered instead of dropping related older meals after 20", async () => {
   const base = await recipe(request());
   const old: RecipeFingerprint = { ...base.fingerprint, createdAt: "2000-01-01T00:00:00Z" };
-  const unrelated = Array.from({ length: 20 }, (_, index): RecipeFingerprint => ({
+  const unrelated = Array.from({ length: 29 }, (_, index): RecipeFingerprint => ({
     ...base.fingerprint, signature: `other-${index}`, structuralSignature: `other-structure-${index}`,
     templateId: "not-a-template", ingredientIds: ["apple"], createdAt: `2026-09-${String(index + 1).padStart(2, "0")}T00:00:00Z`,
   }));
   const result = await recipe(request({ history: [old, ...unrelated] }));
-  assert.equal(result.planHash, base.planHash);
+  assert.notEqual(result.fingerprint.signature, base.fingerprint.signature);
   assert.ok(!result.warnings.some((warning) => warning.includes("Ripetizione esplicita")));
 });
 

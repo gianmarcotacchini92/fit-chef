@@ -90,6 +90,26 @@ test("static export serves same-origin WASM and matches Node recipes without blo
   expect((await runInBrowser(infeasible)).result).toEqual(await generateRecipe(infeasible));
   const empty = { ...input(), pantry: [] };
   expect((await runInBrowser(empty)).result).toEqual(await generateRecipe(empty));
+  for (const protein of ["white-fish", "seafood-salad"]) {
+    const meal = input();
+    meal.pantry = [
+      { ingredientId: protein, mode: "fixed", dietGrams: protein === "white-fish" ? 185 : 230, availableGrams: protein === "white-fish" ? 185 : 230 },
+      { ingredientId: "lettuce", mode: "fixed", dietGrams: 125, availableGrams: 125 },
+      { ingredientId: "bread", mode: "fixed", dietGrams: 64, availableGrams: 64 },
+    ];
+    meal.targets = { kcal: null, protein: null, carbs: null, fat: null, fiber: null, strictCalories: false };
+    const sequence: string[] = [];
+    for (let index = 0; index < 6; index++) {
+      const current = (await runInBrowser(meal)).result;
+      expect(withoutTimestamps(current)).toEqual(withoutTimestamps(await generateRecipe(meal)));
+      if (current.status !== "ok") throw new Error("Expected fish recipe");
+      expect(current.recipe.templateId).not.toBe(sequence.at(-1));
+      sequence.push(current.recipe.templateId);
+      meal.history.unshift(current.recipe.fingerprint);
+    }
+    expect(new Set(sequence.slice(0, 3)).size).toBe(3);
+    expect(new Set(sequence.slice(3)).size).toBe(3);
+  }
   expect(errors).toEqual([]);
   // Firebase Auth's bootstrap is separate from, and not used by, the local recipe engine.
   expect(external.filter((url) => {
