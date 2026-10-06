@@ -247,6 +247,7 @@ export function NutritionApp() {
             <div className="nf-history">{[...nutrition.checkIns].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map((entry) =>
               <div className="nf-food-row" key={entry.id}><strong>{entry.date}</strong><p>{entry.profile.weightKg} kg · {entry.targets.kcal} kcal · P {entry.targets.protein} g / C {entry.targets.carbs} g / G {entry.targets.fat} g</p>
                 {entry.profile.bodyFatPercent !== null && <p className="nf-muted">Massa grassa: {entry.profile.bodyFatPercent}%</p>}
+                {entry.profile.muscleMassKg != null && <p className="nf-muted">Massa muscolare: {entry.profile.muscleMassKg} kg</p>}
                 {entry.id === latestCheckIn ? <p className="nf-muted">Rilevazione attiva: conferma nuovi parametri per aggiornarla.</p> : <button className="nf-text-button" onClick={() => {
                   if (!window.confirm("Eliminare questa rilevazione storica? Gli obiettivi attivi restano invariati, ma il riferimento delle date passate puo cambiare.")) return;
                   updateNutrition((current) => ({ ...current, checkIns: current.checkIns.filter((item) => item.id !== entry.id) }));

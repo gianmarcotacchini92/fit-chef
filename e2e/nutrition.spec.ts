@@ -126,3 +126,27 @@ test("manual foods, quantity edits and saved meals retain exact nutrient snapsho
   await expect(page.getByText("0 kcal consumate", { exact: true })).toBeVisible();
   expect((await stored()).nutrition?.entries).toHaveLength(1);
 });
+
+test("muscle replaces the lean-mass input without being used as lean mass in BMR", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Profilo e TDEE", exact: true }).click();
+  await page.getByLabel("Eta (anni)", { exact: true }).fill("34");
+  await page.getByLabel(/^Sesso biologico/).selectOption("male");
+  await page.getByLabel("Altezza (cm)", { exact: true }).fill("180");
+  await page.getByLabel("Peso (kg)", { exact: true }).fill("80");
+  await page.getByLabel("% Grasso corporeo (opzionale)", { exact: true }).fill("22");
+  await page.getByLabel("Massa muscolare in kg (opzionale)", { exact: true }).fill("58.4");
+  await expect(page.getByLabel("Massa magra in kg (opzionale)", { exact: true })).toHaveCount(0);
+  await page.getByLabel(/^Metodo di calcolo del BMR/).selectOption("lean");
+  await page.getByLabel(/^Livello di attivita/).selectOption("1.55");
+  await page.getByRole("button", { name: "Calcola stima TDEE e proposta", exact: true }).click();
+  await expect(page.getByText("BMR stimato: 1717.84 kcal/die (katch-mcardle)", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Conferma profilo e target", exact: true }).click();
+  const stored = async () => localStateSchema.parse(await page.evaluate(() => JSON.parse(localStorage.getItem("fit-chef.workspace.v1")!)));
+  await expect.poll(async () => (await stored()).nutrition?.profile?.muscleMassKg).toBe(58.4);
+  expect((await stored()).nutrition?.profile?.leanMassKg).toBeNull();
+  await page.reload();
+  await page.getByRole("button", { name: "Profilo e TDEE", exact: true }).click();
+  await expect(page.getByLabel("Massa muscolare in kg (opzionale)", { exact: true })).toHaveValue("58.4");
+  await expect(page.getByText("Massa muscolare: 58.4 kg", { exact: true })).toBeVisible();
+});

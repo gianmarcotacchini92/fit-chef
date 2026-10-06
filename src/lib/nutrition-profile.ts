@@ -7,6 +7,7 @@ export type BodyProfile = {
   weightKg: number;
   bodyFatPercent: number | null;
   leanMassKg: number | null;
+  muscleMassKg?: number | null;
   visceralFat: number | null;
   measuredBmr: number | null;
   bmrMethod: "mifflin" | "lean" | "measured";
@@ -39,6 +40,7 @@ export const profileSchema = z.strictObject({
   weightKg: finite(30, 300),
   bodyFatPercent: finite(2, 70).nullable(),
   leanMassKg: finite(10, 250).nullable(),
+  muscleMassKg: finite(0.1, 250).nullable().optional(),
   visceralFat: finite(1, 59).nullable(),
   measuredBmr: finite(400, 6000).nullable(),
   bmrMethod: z.enum(["mifflin", "lean", "measured"]),
@@ -46,6 +48,9 @@ export const profileSchema = z.strictObject({
   goal: z.enum(["cut", "recomp", "maintain", "surplus"]),
   adjustmentPercent: z.number().finite().min(-20).max(20),
 }).superRefine((profile, ctx) => {
+  if (profile.muscleMassKg !== undefined && profile.muscleMassKg !== null && profile.muscleMassKg >= profile.weightKg) {
+    ctx.addIssue({ code: "custom", path: ["muscleMassKg"], message: "La massa muscolare deve essere inferiore al peso corporeo." });
+  }
   if (profile.bmrMethod === "measured" && profile.measuredBmr === null) {
     ctx.addIssue({ code: "custom", path: ["measuredBmr"], message: "Indica il BMR misurato o scegli un altro metodo di calcolo." });
   }
@@ -85,6 +90,7 @@ export function defaultBodyProfile(): BodyProfile {
     weightKg: 65,
     bodyFatPercent: null,
     leanMassKg: null,
+    muscleMassKg: null,
     visceralFat: null,
     measuredBmr: null,
     bmrMethod: "mifflin",

@@ -64,6 +64,24 @@ test("visceral fat score is accepted but never multiplies or otherwise alters th
   assert.equal(estimateTdee(withHighVisceral).tdee, estimateTdee(withoutVisceral).tdee);
 });
 
+test("22 percent body fat and 58.4 kg muscle are independent, with lean mass derived from fat", () => {
+  const profile = makeProfile({ weightKg: 80, bodyFatPercent: 22, muscleMassKg: 58.4, leanMassKg: null, bmrMethod: "lean" });
+  assert.doesNotThrow(() => profileSchema.parse(profile));
+  assert.equal(estimateTdee(profile).bmr, 1717.84);
+  assert.deepEqual(estimateTdee(profile), estimateTdee({ ...profile, muscleMassKg: 50 }));
+  assert.equal(proposeTargets(profile).kcal, proposeTargets({ ...profile, muscleMassKg: null }).kcal);
+});
+
+test("muscle measurements are optional for legacy profiles, bounded, and cannot replace a missing fat percentage", () => {
+  const legacy = makeProfile();
+  delete legacy.muscleMassKg;
+  assert.deepEqual(profileSchema.parse(legacy), legacy);
+  for (const muscleMassKg of [0, -1, 80, NaN, Infinity]) {
+    assert.equal(profileSchema.safeParse({ ...legacy, muscleMassKg }).success, false);
+  }
+  assert.throws(() => estimateTdee({ ...legacy, bmrMethod: "lean", muscleMassKg: 58.4, leanMassKg: null, bodyFatPercent: null }));
+});
+
 test("goal adjustment and macro proposal use exact 4/4/9 kcal accounting", () => {
   const profile = makeProfile({
     sex: "male", age: 30, heightCm: 180, weightKg: 80, activity: 1.2, bmrMethod: "mifflin",

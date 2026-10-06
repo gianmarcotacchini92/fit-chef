@@ -29,7 +29,7 @@ const GOAL_LABELS: Record<BodyProfile["goal"], string> = {
 
 const BMR_METHOD_LABELS: Record<BodyProfile["bmrMethod"], string> = {
   mifflin: "Mifflin-St Jeor (peso, altezza, eta, sesso biologico)",
-  lean: "Katch-McArdle (massa magra o % grasso corporeo)",
+  lean: "Katch-McArdle (massa magra ricavata da peso e % grasso)",
   measured: "BMR misurato (es. calorimetria indiretta, dispositivo dedicato)",
 };
 
@@ -40,7 +40,7 @@ type Draft = {
   heightCm: string;
   weightKg: string;
   bodyFatPercent: string;
-  leanMassKg: string;
+  muscleMassKg: string;
   visceralFat: string;
   measuredBmr: string;
   bmrMethod: BodyProfile["bmrMethod"];
@@ -56,7 +56,7 @@ function draftFromProfile(profile: BodyProfile): Draft {
     heightCm: String(profile.heightCm),
     weightKg: String(profile.weightKg),
     bodyFatPercent: profile.bodyFatPercent === null ? "" : String(profile.bodyFatPercent),
-    leanMassKg: profile.leanMassKg === null ? "" : String(profile.leanMassKg),
+    muscleMassKg: profile.muscleMassKg == null ? "" : String(profile.muscleMassKg),
     visceralFat: profile.visceralFat === null ? "" : String(profile.visceralFat),
     measuredBmr: profile.measuredBmr === null ? "" : String(profile.measuredBmr),
     bmrMethod: profile.bmrMethod,
@@ -68,7 +68,7 @@ function draftFromProfile(profile: BodyProfile): Draft {
 
 function blankDraft(): Draft {
   return {
-    age: "", sex: "", heightCm: "", weightKg: "", bodyFatPercent: "", leanMassKg: "", visceralFat: "",
+    age: "", sex: "", heightCm: "", weightKg: "", bodyFatPercent: "", muscleMassKg: "", visceralFat: "",
     measuredBmr: "", bmrMethod: "mifflin", activity: "", goal: "maintain", adjustmentPercent: "0",
   };
 }
@@ -92,18 +92,18 @@ function draftToProfile(draft: Draft): { profile?: BodyProfile; error?: string }
   const heightCm = parseRequiredNumber(draft.heightCm);
   const weightKg = parseRequiredNumber(draft.weightKg);
   const bodyFatPercent = parseOptionalNumber(draft.bodyFatPercent);
-  const leanMassKg = parseOptionalNumber(draft.leanMassKg);
+  const muscleMassKg = parseOptionalNumber(draft.muscleMassKg);
   const visceralFat = parseOptionalNumber(draft.visceralFat);
   const measuredBmr = parseOptionalNumber(draft.measuredBmr);
   const adjustmentPercent = parseRequiredNumber(draft.adjustmentPercent);
   const activity = parseRequiredNumber(draft.activity);
   if (draft.sex === "" || activity === undefined) return { error: "Seleziona il sesso biologico e il livello di attivita." };
   if (age === undefined || heightCm === undefined || weightKg === undefined || adjustmentPercent === undefined
-    || bodyFatPercent === undefined || leanMassKg === undefined || visceralFat === undefined || measuredBmr === undefined) {
+    || bodyFatPercent === undefined || muscleMassKg === undefined || visceralFat === undefined || measuredBmr === undefined) {
     return { error: "Controlla i campi numerici: alcuni valori non sono numeri validi." };
   }
   const candidate: BodyProfile = {
-    age, sex: draft.sex, heightCm, weightKg, bodyFatPercent, leanMassKg, visceralFat, measuredBmr,
+    age, sex: draft.sex, heightCm, weightKg, bodyFatPercent, leanMassKg: null, muscleMassKg, visceralFat, measuredBmr,
     bmrMethod: draft.bmrMethod, activity, goal: draft.goal, adjustmentPercent,
   };
   const parsed = profileSchema.safeParse(candidate);
@@ -205,8 +205,8 @@ export function NutritionProfile({ profile, targets, onConfirm }: NutritionProfi
       <label className="nf-field">% Grasso corporeo (opzionale)
         <input type="number" inputMode="decimal" step="0.1" value={draft.bodyFatPercent} placeholder="Non misurato" onChange={(event) => updateDraft({ bodyFatPercent: event.target.value })}/>
       </label>
-      <label className="nf-field">Massa magra in kg (opzionale)
-        <input type="number" inputMode="decimal" step="0.1" value={draft.leanMassKg} placeholder="Non misurata" onChange={(event) => updateDraft({ leanMassKg: event.target.value })}/>
+      <label className="nf-field">Massa muscolare in kg (opzionale)
+        <input type="number" inputMode="decimal" min="0.1" max="250" step="0.1" value={draft.muscleMassKg} placeholder="Non misurata" onChange={(event) => updateDraft({ muscleMassKg: event.target.value })}/>
       </label>
       <label className="nf-field">Grasso viscerale (punteggio, opzionale)
         <input type="number" inputMode="decimal" step="1" value={draft.visceralFat} placeholder="Non misurato" onChange={(event) => updateDraft({ visceralFat: event.target.value })}/>
@@ -237,6 +237,8 @@ export function NutritionProfile({ profile, targets, onConfirm }: NutritionProfi
         <input type="number" inputMode="decimal" min={-20} max={20} step="1" value={draft.adjustmentPercent} onChange={(event) => updateDraft({ adjustmentPercent: event.target.value })}/>
       </label>
     </div>
+    <p className="nf-muted">La massa muscolare della bilancia e un dato di monitoraggio, non la massa magra. Per Katch-McArdle inserisci la percentuale di grasso: la massa magra viene ricavata come peso x (1 - % grasso / 100), senza usare i kg di muscolo.</p>
+    {profile?.leanMassKg != null && <p className="nf-muted">Il precedente valore di massa magra ({profile.leanMassKg} kg) resta nei dati salvati finche non confermi il nuovo profilo; non viene copiato nel campo muscolare. Con il metodo Katch-McArdle, completa la percentuale di grasso prima di ricalcolare.</p>}
     <p className="nf-muted">Cambiando obiettivo, l&apos;aggiustamento torna al valore predefinito (definizione -10%, aumento +5%, altri 0%); puoi poi modificarlo. Servizio per adulti (18+).</p>
     {draft.goal === "recomp" && <p className="nf-muted">La ricomposizione parte dal mantenimento: non e una garanzia di risultato, solo un punto di partenza prudente.</p>}
 
@@ -246,6 +248,7 @@ export function NutritionProfile({ profile, targets, onConfirm }: NutritionProfi
     {estimate && <div className="nf-card" aria-label="Stima del metabolismo">
       <p><strong>BMR stimato:</strong> {estimate.bmr} kcal/die ({estimate.method})</p>
       <p><strong>TDEE stimato:</strong> {estimate.tdee} kcal/die</p>
+      {estimate.method === "katch-mcardle" && <p className="nf-muted">Massa magra ricavata da peso e grasso corporeo: {((parseRequiredNumber(draft.weightKg) ?? 0) * (1 - (parseOptionalNumber(draft.bodyFatPercent) ?? 0) / 100)).toFixed(1)} kg. Non e la massa muscolare.</p>}
       {estimate.warnings.length > 0 && <ul>{estimate.warnings.map((warning, index) => <li key={index} className="nf-muted">{warning}</li>)}</ul>}
     </div>}
 
