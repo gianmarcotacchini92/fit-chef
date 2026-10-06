@@ -3,7 +3,7 @@ import { localStateSchema } from "../src/lib/validation";
 
 async function enterPoultryMeal(page: Page) {
   await page.route("**/api/weekly-diet", (route) => route.fulfill({ json: { plan: null } }));
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal mio pasto", exact: true }).click();
   await page.getByLabel("Pasto previsto dalla dieta", { exact: true }).fill("165 g pollo\n175 g finocchi\n62 g pane");
   await page.getByRole("button", { name: "Usa questo pasto", exact: true }).click();

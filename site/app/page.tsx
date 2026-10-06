@@ -1,5 +1,5 @@
-import { ChefApp } from "@/components/chef-app";
+import { NutritionApp } from "@/components/nutrition-app";
 
 export default function Home() {
-  return <ChefApp />;
+  return <NutritionApp />;
 }

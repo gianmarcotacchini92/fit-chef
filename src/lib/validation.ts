@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nutritionStateSchema } from "./nutrition-state";
 import { GENERATION_HISTORY_LIMIT } from "./recipe-history";
 import type { GenerateRequest, LocalState, Recipe, WeeklyPlan } from "./types";
 
@@ -231,6 +232,7 @@ export const localStateSchema = z.strictObject({
   cookedIds: ids(100),
   weeklyDiet: weeklyDietStateSchema.optional(),
   builderMode: z.enum(["weekly", "meal", "pantry"]).optional(),
+  nutrition: nutritionStateSchema.optional(),
 }).superRefine((state, ctx) => {
   const present = new Set(state.recipes.map((recipe) => recipe.id));
   for (const field of ["favoriteIds", "cookedIds"] as const) {

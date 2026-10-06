@@ -17,7 +17,7 @@ async function start(page: Page, withPlan = true) {
     weeklyDiet: { ...initialWeeklyDietState(), day: "thursday", ...(withPlan ? { plan: syntheticWeeklyPlan() } : {}) },
     builderMode: "weekly",
   });
-  await page.goto("/");
+  await page.goto("/chef");
   await expect(page.getByRole("heading", { name: "La tua dieta settimanale", exact: true })).toBeVisible();
 }
 async function approveSample(page: Page) {

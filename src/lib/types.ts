@@ -170,6 +170,7 @@ export type LocalState = {
   cookedIds: string[];
   weeklyDiet?: WeeklyDietState;
   builderMode?: "weekly" | "meal" | "pantry";
+  nutrition?: import("./nutrition-state").NutritionState;
 };
 
 export type WeekDay = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";

@@ -4,7 +4,7 @@ test("generates a calculated recipe, saves it, and restores favorites after relo
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   const configuration = page.waitForResponse((response) => response.url().endsWith("/api/config"));
-  await page.goto("/");
+  await page.goto("/chef");
   expect((await configuration).status()).toBe(200);
   await page.getByRole("button", { name: "Dal frigo", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cosa hai in frigo?" })).toBeVisible();
@@ -41,7 +41,7 @@ test("generates a calculated recipe, saves it, and restores favorites after relo
 
 test("a sweet breakfast example generates a real sweet recipe", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal frigo", exact: true }).click();
   await page.getByRole("button", { name: /E se fosse una colazione/ }).click();
   await expect(page.getByLabel(/Quantita disponibile .*avena/i)).toBeVisible();
@@ -53,7 +53,7 @@ test("a sweet breakfast example generates a real sweet recipe", async ({ page })
 });
 
 test("rejects incompatible fixed diet instead of inventing nutrition", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal frigo", exact: true }).click();
   await page.getByLabel("Uso nella dieta Petto di pollo", { exact: true }).selectOption("fixed");
   await page.getByLabel("Grammi dieta Petto di pollo", { exact: true }).fill("150");
@@ -66,7 +66,7 @@ test("rejects incompatible fixed diet instead of inventing nutrition", async ({ 
 });
 
 test("catalog, explicit diet import, and empty library are usable", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal frigo", exact: true }).click();
   await page.getByRole("button", { name: "Account", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Account e copia cloud" })).toBeVisible();

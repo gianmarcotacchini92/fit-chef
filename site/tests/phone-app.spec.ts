@@ -10,7 +10,7 @@ test("phone app starts without a private diet, generates and retains recipes off
     if (new URL(request.url()).pathname.includes("/api/")) apiRequests.push(request.url());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("./");
+  await page.goto("chef/");
   await expect(page.getByText(/Nessuna dieta personale e inclusa nell.app pubblica/)).toBeVisible();
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), { timeout: 30_000 }).toBe(true);
   await page.reload();

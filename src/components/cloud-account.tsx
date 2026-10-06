@@ -225,8 +225,8 @@ export function CloudAccount({ state, onRestore, onMessage, disabled = false, re
             <button className="button button-secondary" disabled={busy} onClick={() => void run(() => requireSession().start())}><RefreshCw size={16}/>Riprova sincronizzazione</button>
             <button className="button button-secondary" disabled={busy} onClick={downloadBackups}><Download size={16}/>Esporta copie di sicurezza</button>
             <button className="text-button" disabled={busy} onClick={() => {
-              if (window.confirm("Eliminare la copia cloud di FIT Chef e fermare la sincronizzazione? I dati locali, gli altri progetti Firebase e l'account Google non verranno eliminati.")) void run(() => requireSession().clearCloud());
-            }}><Trash2 size={15}/>Elimina solo la copia cloud FIT Chef</button>
+              if (window.confirm("Eliminare la copia cloud di questa app e fermare la sincronizzazione? Diario, dieta e ricette resteranno sul dispositivo. Gli altri progetti Firebase e l'account Google non verranno eliminati.")) void run(() => requireSession().clearCloud());
+            }}><Trash2 size={15}/>Elimina solo la copia cloud</button>
             <button className="text-button" disabled={busy} onClick={() => {
               if (window.confirm("Uscire da Google su questo dispositivo? I dati locali rimangono presenti. Eventuali modifiche non ancora sincronizzate non saranno visibili sul telefono finche non accedi di nuovo.")) void run(async () => {
                 const client = clientRef.current;

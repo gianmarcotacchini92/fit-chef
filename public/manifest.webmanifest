@@ -1,7 +1,7 @@
 {
-  "name": "FIT Chef",
-  "short_name": "FIT Chef",
-  "description": "Ricette personalizzate, dieta privata e sincronizzazione tra dispositivi.",
+  "name": "FIT Diario",
+  "short_name": "FIT Diario",
+  "description": "Diario alimentare, profilo TDEE, macros e dieta privata sincronizzati tra dispositivi.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

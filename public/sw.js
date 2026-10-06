@@ -1,4 +1,4 @@
-const CACHE = "fit-chef-static-v1";
+const CACHE = "fit-chef-diary-v2";
 const scope = new URL(self.registration.scope);
 
 self.addEventListener("install", (event) => {

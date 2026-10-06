@@ -3,7 +3,7 @@ import { localStateSchema } from "../src/lib/validation";
 import { generateWithConfirmedExtras } from "./helpers/meal-generation";
 
 async function enterMeal(page: Page) {
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal mio pasto", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Che pasto devi mangiare?" })).toBeVisible();
   await page.getByLabel("Pasto previsto dalla dieta", { exact: true }).fill("150 g macinato magro di manzo e 200 g zucchine");

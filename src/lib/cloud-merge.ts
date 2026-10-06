@@ -33,7 +33,8 @@ export function mergeCloudWorkspaces(base: LocalState, local: LocalState, remote
           ? here.includes(value) && there.includes(value)
           : here.includes(value) || there.includes(value));
       }
-      const identity = path === "input.pantry" ? "ingredientId" : path === "recipes" ? "id" : null;
+      const identity = path === "input.pantry" ? "ingredientId"
+        : ["recipes", "nutrition.entries", "nutrition.savedMeals", "nutrition.checkIns"].includes(path) ? "id" : null;
       if (identity && [...previous, ...here, ...there].every((item) => record(item) && typeof item[identity] === "string")) {
         const toMap = (items: unknown[]) => Object.fromEntries(items.map((item) => {
           if (!record(item) || typeof item[identity] !== "string") throw new Error("Identificativo non valido durante l'unione.");

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./meal.css";
+import "./nutrition.css";
 
 export const metadata: Metadata = {
-  title: "FIT Chef | Il tuo pasto. Tutto un altro sapore.",
-  description: "Scegli giorno e pasto dalla tua dieta settimanale e crea una ricetta gustosa: grammature fisse, alternative esplicite, extra confermati e macros trasparenti.",
+  title: "FIT Diario | Calorie, macros e il tuo obiettivo",
+  description: "Il tuo diario alimentare con profilo TDEE, obiettivi modificabili, barcode e dieta personale sincronizzata con Google. Senza AI a pagamento.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -26,7 +26,7 @@ async function start(page: Page, protein: string, maxTime = DEFAULT_MEAL_INPUT.p
     builderMode: "weekly", weeklyDiet: { ...initialWeeklyDietState(), plan, day: "monday", meal: "dinner" },
   });
   page.on("dialog", (dialog) => dialog.accept());
-  await page.goto("/");
+  await page.goto("/chef");
 }
 
 test("another clearly explains when the time limit leaves only one preparation", async ({ page }) => {

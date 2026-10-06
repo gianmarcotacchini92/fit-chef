@@ -5,7 +5,7 @@ import { generateWithConfirmedExtras } from "./helpers/meal-generation";
 test("pasted pasta meal asks only for missing grams and confirms the generic Philadelphia mapping", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal mio pasto", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Che pasto devi mangiare?" })).toBeVisible();
   await page.getByLabel("Pasto previsto dalla dieta", { exact: true }).fill("Pomodori\n90 gr pasta\n80 gr Philadelphia");
@@ -53,7 +53,7 @@ test("pasted pasta meal asks only for missing grams and confirms the generic Phi
 });
 
 test("editing the source invalidates recognized weights and cannot silently drop an unknown food", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/chef");
   await page.getByRole("button", { name: "Dal mio pasto", exact: true }).click();
   const text = page.getByLabel("Pasto previsto dalla dieta", { exact: true });
   await text.fill("Pomodori\n90 gr pasta\n80 gr Philadelphia");

@@ -1,10 +1,30 @@
-# FIT Chef
+# FIT Diario (ex FIT Chef)
 
-Web app italiana per trasformare gli alimenti previsti dalla dieta in una ricetta gustosa. Le grammature originali restano fisse, le aggiunte richiedono conferma e i nutrienti vengono calcolati, non inventati da un modello AI.
+Web app italiana per registrare alimenti, calorie e macronutrienti, con obiettivi basati sul TDEE e sincronizzazione Google. La home e ora il diario; dieta privata e ricette precedenti vengono conservate senza cambiare la chiave locale o la collezione Firebase.
 
-La versione online funziona anche sul telefono e genera le ricette direttamente nel browser: non richiede che il PC rimanga acceso. Google Authentication e Cloud Firestore conservano il workspace privato tra dispositivi.
+## Diario, profilo e obiettivi
 
-## Uso
+1. In **Profilo e TDEE** inserisci eta adulta, peso, altezza, parametro fisiologico della formula, livello di attivita e obiettivo: definizione, ricomposizione, mantenimento o surplus.
+2. Puoi scegliere Mifflin-St Jeor, una stima da massa magra (Katch-McArdle) oppure il metabolismo basale inserito da te. Massa grassa, massa magra e grasso viscerale restano dati privati. L'indice viscerale non modifica il calcolo; il metabolismo fornito da una bilancia non e necessariamente misurato clinicamente.
+3. **TDEE = BMR x fattore di attivita**. Il fattore comprende l'attivita abituale: non vengono aggiunte di nuovo calorie per gli allenamenti. La proposta e modificabile e richiede conferma esplicita. La ricomposizione parte dal mantenimento e non promette un risultato fisiologico.
+4. Puoi impostare calorie e proteine/carboidrati/grassi indipendentemente. L'app mostra la differenza tra calorie target e `4P + 4C + 9G`, senza correggere valori di nascosto. La conferma registra una rilevazione; gli obiettivi delle date precedenti non cambiano automaticamente.
+5. Nel **Diario** scegli data e pasto, cerca un alimento, controlla lo stato crudo/cotto e indica i grammi. Puoi modificare o eliminare una voce, creare alimenti da etichetta e salvare pasti da riutilizzare.
+6. Il barcode cerca il prodotto su Open Food Facts: controlla nome e valori prima della registrazione. I dati mancanti richiedono completamento, non diventano zeri impliciti. La scansione con fotocamera dipende dalle API disponibili nel browser; l'inserimento manuale del codice resta disponibile.
+7. In **La mia dieta** riutilizzi il piano privato, scegli una sola alternativa, completi i pesi e confermi prima di registrare. Poi puoi correggere nel diario le quantita effettivamente mangiate, senza riscrivere il piano.
+
+Il riconoscimento nutrizionale da foto non e implementato e non ci sono chiamate a servizi AI a pagamento nel diario. Il catalogo locale e composto da stime editoriali generiche, non da un database ufficiale. I prodotti confezionati vanno confrontati con le etichette. Open Food Facts e un database collaborativo con licenza ODbL: [attribuzione e condizioni](https://world.openfoodfacts.org/terms-of-use). La ricerca barcode invia soltanto il codice al servizio esterno, non diario o parametri corporei.
+
+Il TDEE e una stima per adulti, non una prescrizione medica. Attivita, composizione corporea e dispositivi possono introdurre errori; in caso di gravidanza, allattamento, patologie, sottopeso o altre necessita cliniche non usare la proposta automatica al posto del professionista che ti segue.
+
+## Dati e compatibilita
+
+Il campo opzionale `nutrition` estende il workspace versione 1: profilo, targets, voci del diario con snapshot nutrizionali, pasti salvati e rilevazioni. Vecchi archivi restano importabili; i prodotti registrati mantengono i propri valori anche se il catalogo cambia. Le voci e i pasti si uniscono tra dispositivi per ID; modifiche incompatibili restano conflitti espliciti.
+
+Limiti espliciti: 3000 voci del diario, 100 pasti salvati, 365 rilevazioni. Non tagliamo dati per rientrare nei limiti; il cloud mantiene il limite di 900 KiB del workspace completo. Esporta periodicamente il backup, soprattutto prima di rimuovere vecchi dati. La navigazione e registrazione nel catalogo locale funzionano offline dopo il primo caricamento; barcode e sincronizzazione richiedono rete.
+
+Le ricette precedenti sono consultabili nella sezione **Archivio ricette** e registrabili per porzione. Il vecchio generatore e conservato separatamente nella route `/chef` per compatibilita: non e piu la home del prodotto. I dettagli che seguono descrivono quel motore precedente.
+
+## Motore ricette precedente: uso
 
 1. **Dalla mia settimana**: importa il tuo piano, scegli giorno e pasto, completa i pesi mancanti e conferma i prodotti effettivamente utilizzati. Il repository pubblico non contiene diete personali.
 2. **Dal mio pasto**: scrivi alimenti e quantita, anche su righe separate. Sono accettati `g`, `gr`, `gr.`, `grammo`, `grammi` e la virgola decimale. Un alimento riconosciuto senza peso rimane da completare, non viene scartato o quantificato automaticamente.
@@ -47,7 +67,7 @@ Per trasferire un workspace gia utilizzato in locale:
 2. Accedi con Google e scegli **Sincronizza i dati del dispositivo**. Attendi lo stato di sincronizzazione completata prima di chiudere.
 3. Apri la versione online sul telefono, accedi con lo stesso Google e scegli **Usa i dati cloud**, se richiesto.
 
-Successivamente modifiche, piano settimanale, ricette, preferiti e impostazioni vengono sincronizzati automaticamente. Il collegamento Firebase CLI utilizzato per configurare il progetto non sostituisce l'accesso Google dentro l'app.
+Successivamente diario, pasti salvati, profilo corporeo, obiettivi, rilevazioni, piano settimanale e archivio ricette vengono sincronizzati automaticamente. Il collegamento Firebase CLI utilizzato per configurare il progetto non sostituisce l'accesso Google dentro l'app.
 
 - Le transazioni confrontano la revisione cloud: una copia vecchia non puo sovrascrivere silenziosamente una piu recente.
 - Modifiche indipendenti vengono unite; modifiche incompatibili sospendono la sincronizzazione e richiedono una scelta esplicita.
@@ -71,12 +91,14 @@ Per la migrazione dalla precedente installazione locale, il piano e conservato e
 |---|---|
 | Interfaccia | Next.js, React, TypeScript, layout responsive |
 | Catalogo | Ingredienti e valori nutrizionali generici versionati |
+| Diario e TDEE | Snapshot per alimento, calcoli per grammi, formule esplicite e target confermati |
+| Barcode | Scanner locale gratuito ZXing e lookup prodotto Open Food Facts |
 | Composizione | Archetipi culinari, vincoli, diversita e HiGHS |
 | Versione online | Export statico, generazione nel browser e Web Worker |
 | Account | Firebase Authentication, Google, persistenza locale della sessione |
 | Sincronizzazione | Cloud Firestore, `fitChefUsers/{uid}`, transazioni e listener |
 | Distribuzione | GitHub Pages tramite GitHub Actions |
-| AI facoltativa | Solo backend locale configurato e consenso esplicito |
+| AI facoltativa precedente | Solo generatore legacy locale configurato e consenso esplicito; nessuna AI nel diario |
 
 Il progetto Firebase configurato e `sincro-ai`, gia usato dalle altre app del proprietario. FIT Chef ha una propria app web registrata e una collezione separata: non legge o modifica i documenti PAC ETF o diario corporeo. Non viene inizializzato Firebase Analytics.
 
