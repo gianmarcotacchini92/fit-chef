@@ -40,7 +40,7 @@ test("day optimization meets kcal tolerance and 1.6g/kg and leaves imports uncha
   assert.equal(draft.confirmed, false);
   const resolved = resolveWeeklyMeal("monday", "lunch", { ...draft, confirmed: true }, changed.plan);
   assert.equal(resolved.errors.length, 0);
-  assert.ok(Object.values(changed.drafts).some((mealDraft) => Object.values(mealDraft.grams).some((grams) => Number(grams) !== 100)));
+  assert.ok(Object.values(changed.drafts).some((mealDraft) => Object.values(mealDraft.overrides ?? {}).some((grams) => Number(grams) !== 100)));
 });
 
 test("all locked quantities remain unchanged and incompatible target is clearly not reached", () => {
