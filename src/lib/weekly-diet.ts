@@ -72,7 +72,7 @@ export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMea
       errors.push(`${slot.label}: questa voce non e ancora disponibile nel catalogo.`);
       continue;
     }
-    const raw = option.grams === null ? draft.grams[weeklyQuantityKey(slot, option)] : String(option.grams);
+    const raw = draft.grams[weeklyQuantityKey(slot, option)] ?? String(option.grams ?? "");
     const grams = raw?.trim() ? Number(raw.replace(",", ".")) : NaN;
     if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
       errors.push(`${slot.label}: indica i grammi per porzione, maggiori di zero e fino a 5000.`);
