@@ -142,8 +142,10 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
             </label>}
             {food && <p>{food.name} <span className="nf-muted">— {food.state}</span></p>}
             {option && <label className="nf-field">Grammi {slot.label}
-              <input type="number" min="0.1" max="5000" step="0.1" value={draft.grams[weeklyQuantityKey(slot, option)] ?? String(option.grams ?? "")} onChange={(event) => updateDraft({
-                grams: { ...draft.grams, [weeklyQuantityKey(slot, option)]: event.target.value }, confirmed: false,
+              <input type="number" min="0.1" max="5000" step="0.1" value={option.grams === null ? (draft.grams[weeklyQuantityKey(slot, option)] ?? "") : (draft.overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams))} onChange={(event) => updateDraft({
+                ...(option.grams === null
+                  ? { grams: { ...draft.grams, [weeklyQuantityKey(slot, option)]: event.target.value } }
+                  : { overrides: { ...draft.overrides, [weeklyQuantityKey(slot, option)]: event.target.value } }), confirmed: false,
               })}/>
               {option.grams !== null && <span className="nf-muted">Piano originale: {option.grams} g</span>}
             </label>}
