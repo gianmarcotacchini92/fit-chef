@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 import "./meal.css";
 import "./nutrition.css";
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   description: "Il tuo diario alimentare con profilo TDEE, obiettivi modificabili, barcode e dieta personale sincronizzata con Google. Senza AI a pagamento.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="it">
       <body><a className="skip-link" href="#main-content">Vai al contenuto</a>{children}</body>
