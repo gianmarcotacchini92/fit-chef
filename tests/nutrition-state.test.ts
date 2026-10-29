@@ -107,3 +107,19 @@ test("targets follow confirmed measurement dates, not retroactive application of
   assert.deepEqual(targetsOnDate(state, "2026-10-07"), targets);
   assert.equal(targetsOnDate(state, "2026-10-09")?.kcal, 2500);
 });
+
+test("personal foods survive JSON roundtrip and concurrent additions, without changing historical snapshots", () => {
+  const previous = entry();
+  const foodA = { ...previous.food, id: "manual-personal-a", name: "Yogurt A" };
+  const foodB = { ...previous.food, id: "manual-personal-b", name: "Yogurt B" };
+  const base = { ...workspace(), nutrition: { ...emptyNutritionState(), entries: [previous] } };
+  const local = structuredClone(base), remote = structuredClone(base);
+  local.nutrition.savedFoods = [foodA];
+  remote.nutrition.savedFoods = [foodB];
+  const merged = mergeCloudWorkspaces(base, local, remote);
+  assert.deepEqual(merged.conflicts, []);
+  assert.equal(merged.state?.nutrition?.savedFoods?.length, 2);
+  assert.deepEqual(merged.state?.nutrition?.entries[0], previous);
+  assert.deepEqual(parseCloudWorkspace(JSON.parse(JSON.stringify(merged.state))), merged.state);
+  assert.equal(nutritionStateSchema.safeParse({ ...emptyNutritionState(), savedFoods: [foodA, foodA] }).success, false);
+});
