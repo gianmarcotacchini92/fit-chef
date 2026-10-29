@@ -74,3 +74,28 @@
   .nf-diary > .nf-card:first-child .nf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .nf-diary > .nf-card:first-child .nf-grid > :first-child { grid-column: 1 / -1; background: #edf2e4; }
 }
+
+/* Compact daily meal overview: details remain accessible only when a meal is expanded. */
+.nf-meal-card { padding: 0; margin-bottom: 10px; border-radius: 15px; overflow: hidden; }
+.nf-meal-summary, .nf-composer-summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 13px 16px; min-height: 68px; }
+.nf-meal-summary::-webkit-details-marker, .nf-composer-summary::-webkit-details-marker { display: none; }
+.nf-meal-heading, .nf-meal-totals, .nf-composer-summary > span { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+.nf-meal-heading { flex: 1; }
+.nf-meal-heading strong, .nf-meal-totals strong { font-size: 15px; }
+.nf-meal-totals { align-items: flex-end; text-align: right; }
+.nf-meal-summary small, .nf-composer-summary small { font-size: 11px; color: #657165; font-weight: 400; }
+.nf-meal-chevron, .nf-composer-summary > svg { color: #617760; transition: transform .15s ease; flex-shrink: 0; }
+.nf-meal-card[open] .nf-meal-chevron, .nf-composer-card[open] .nf-composer-summary > svg { transform: rotate(180deg); }
+.nf-meal-details { border-top: 1px solid #e0e6d8; padding: 6px 16px 14px; }
+.nf-meal-details .nf-food-row { margin: 8px 0; padding: 12px; }
+.nf-meal-details .nf-food-row .nf-field { max-width: 180px; }
+.nf-composer-card { padding: 0; scroll-margin-top: 16px; }
+.nf-composer-summary { justify-content: space-between; }
+.nf-composer-summary strong { font-size: 16px; }
+.nf-composer-content { padding: 0 18px 18px; border-top: 1px solid #e0e6d8; }
+@media (max-width: 680px) {
+  .nf-meal-summary { padding: 12px; gap: 9px; }
+  .nf-meal-heading strong, .nf-meal-totals strong { font-size: 14px; }
+  .nf-meal-summary small { font-size: 10px; }
+  .nf-meal-details { padding: 6px 10px 12px; }
+}
