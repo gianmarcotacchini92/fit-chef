@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
-  defaultBodyProfile, estimateTdee, profileSchema, proposeTargets, type BodyProfile,
+  defaultBodyProfile, estimateTdee, profileSchema, proposeTargets, proteinMinimumError, minimumDailyProtein, type BodyProfile,
 } from "../src/lib/nutrition-profile";
 
 function makeProfile(overrides: Partial<BodyProfile> = {}): BodyProfile {
@@ -149,4 +149,13 @@ test("implausible measured BMR (far from the formula estimate) is rejected; a mo
   assert.ok(warned.warnings.some((warning) => /oltre il 25%/.test(warning)));
   const close = estimateTdee(makeProfile({ bmrMethod: "measured", measuredBmr: 1800 }));
   assert.ok(!close.warnings.some((warning) => /oltre il 25%/.test(warning)));
+});
+
+test("manual protein targets enforce at least 1.6 g/kg without changing the saved target", () => {
+  assert.equal(minimumDailyProtein(79), 126.4);
+  assert.match(proteinMinimumError(79, 126.3) ?? "", /126\.4/);
+  assert.equal(proteinMinimumError(79, 126.4), null);
+  assert.equal(proteinMinimumError(79, 140), null);
+  assert.equal(minimumDailyProtein(79.03), 126.5);
+  assert.throws(() => minimumDailyProtein(0), /Peso corporeo/);
 });
