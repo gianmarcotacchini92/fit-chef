@@ -16,7 +16,7 @@ export type DailyAdjustment = {
 
 function numericGrams(slot: WeeklySlot, option: WeeklyOption, grams: Record<string, string>, overrides?: Record<string, string>): number {
   const raw = option.grams === null ? grams[weeklyQuantityKey(slot, option)] : (overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams));
-  return raw.trim() ? Number(raw.replace(",", ".")) : NaN;
+  return raw?.trim() ? Number(raw.replace(",", ".")) : NaN;
 }
 
 export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: ReadonlySet<string> = new Set()): DailyPlan {
