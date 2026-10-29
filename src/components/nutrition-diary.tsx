@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   diaryEntrySchema, entryNutrition, localDate, savedMealSchema, sumDiary,
-  type DiaryEntry, type FoodSnapshot, type SavedMeal,
+  foodSnapshotSchema, type DiaryEntry, type FoodSnapshot, type SavedMeal,
 } from "@/lib/nutrition-diary";
 import { fetchOffProduct, isValidBarcode, manualFoodSnapshot, searchCatalog, type OffLookup } from "@/lib/food-search";
 import type { Nutrients, WeekMeal } from "@/lib/types";
@@ -17,6 +17,9 @@ type Targets = { kcal: number; protein: number; carbs: number; fat: number };
 type Props = {
   entries: DiaryEntry[];
   savedMeals: SavedMeal[];
+  savedFoods: FoodSnapshot[];
+  onSaveFood: (food: FoodSnapshot) => void;
+  onDeleteFood: (id: string) => void;
   date: string;
   onDate: (date: string) => void;
   onAdd: (entries: DiaryEntry[]) => void;
@@ -28,7 +31,7 @@ type Props = {
 };
 
 type CartItem = { key: string; food: FoodSnapshot; grams: number };
-type BuilderTab = "catalog" | "manual" | "barcode" | "recent" | "saved";
+type BuilderTab = "catalog" | "manual" | "barcode" | "recent" | "saved" | "foods";
 
 const MEAL_ORDER: WeekMeal[] = ["breakfast", "lunch", "snack", "dinner"];
 const MEAL_LABELS: Record<WeekMeal, string> = { breakfast: "Colazione", lunch: "Pranzo", snack: "Spuntino", dinner: "Cena" };
@@ -94,7 +97,7 @@ function EntryRow({ entry, onUpdate, onDelete }: { entry: DiaryEntry; onUpdate: 
   </div>;
 }
 
-export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpdate, onDelete, onSaveMeal, onDeleteMeal, targets }: Props) {
+export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, onDeleteFood, date, onDate, onAdd, onUpdate, onDelete, onSaveMeal, onDeleteMeal, targets }: Props) {
   const [meal, setMeal] = useState<WeekMeal>("lunch");
   const [tab, setTab] = useState<BuilderTab>("catalog");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -109,6 +112,8 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
   const results = useMemo(() => searchCatalog(query, 10), [query]);
 
   // Manual custom food
+  const [editingFoodId, setEditingFoodId] = useState<string | null>(null);
+  const [personalQuery, setPersonalQuery] = useState("");
   const [manualName, setManualName] = useState("");
   const [manualState, setManualState] = useState("");
   const [manualGrams, setManualGrams] = useState("100");
@@ -194,18 +199,50 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
     setNotice(`${food.name} aggiunto alla selezione da registrare.`);
   }
 
+  function manualSnapshot(): FoodSnapshot {
+    const fields = [manualKcal, manualProtein, manualCarbs, manualFat, manualFiber];
+    if (fields.some((value) => !value.trim())) throw new Error("Compila tutti i valori per 100 g, fibre incluse: scrivi 0 solo se l'etichetta indica 0.");
+    const per100g: Nutrients = {
+      kcal: Number(manualKcal.replace(",", ".")), protein: Number(manualProtein.replace(",", ".")),
+      carbs: Number(manualCarbs.replace(",", ".")), fat: Number(manualFat.replace(",", ".")),
+      fiber: Number(manualFiber.replace(",", ".")),
+    };
+    const snapshot = manualFoodSnapshot({ name: manualName, state: manualState, per100g });
+    return editingFoodId ? { ...snapshot, id: editingFoodId } : snapshot;
+  }
+
+  function clearManual() {
+    setEditingFoodId(null);
+    setManualName(""); setManualState(""); setManualKcal(""); setManualProtein("");
+    setManualCarbs(""); setManualFat(""); setManualFiber("");
+  }
+
+  function saveManualFood() {
+    try {
+      const food = manualSnapshot();
+      onSaveFood(food);
+      clearManual();
+      setTab("foods");
+      setNotice("Alimento inviato alla libreria personale. Le registrazioni precedenti restano invariate.");
+      setError("");
+    } catch (err) { setError(err instanceof Error ? err.message : "Alimento non valido."); }
+  }
+
+  function editPersonalFood(food: FoodSnapshot) {
+    setEditingFoodId(food.id);
+    setManualName(food.name); setManualState(food.state);
+    setManualKcal(String(food.per100g.kcal)); setManualProtein(String(food.per100g.protein));
+    setManualCarbs(String(food.per100g.carbs)); setManualFat(String(food.per100g.fat));
+    setManualFiber(String(food.per100g.fiber));
+    setTab("manual");
+    setError("");
+  }
+
   function addManual() {
     try {
-      const fields = [manualKcal, manualProtein, manualCarbs, manualFat, manualFiber];
-      if (fields.some((value) => !value.trim())) throw new Error("Compila tutti i valori per 100 g, fibre incluse: scrivi 0 solo se l'etichetta indica 0.");
-      const per100g: Nutrients = {
-        kcal: Number(manualKcal.replace(",", ".")), protein: Number(manualProtein.replace(",", ".")),
-        carbs: Number(manualCarbs.replace(",", ".")), fat: Number(manualFat.replace(",", ".")),
-        fiber: Number(manualFiber.replace(",", ".")),
-      };
-      const food = manualFoodSnapshot({ name: manualName, state: manualState, per100g });
+      const food = manualSnapshot();
       addToCart(food, manualGrams);
-      setManualName(""); setManualState(""); setManualKcal(""); setManualProtein(""); setManualCarbs(""); setManualFat(""); setManualFiber("");
+
     } catch (manualError) {
       setError(manualError instanceof Error ? manualError.message : "Alimento manuale non valido.");
     }
@@ -230,6 +267,27 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
     };
     addToCart(food, offGrams);
     setOffResult(null); setBarcode(""); setOffFiber("");
+  }
+
+  function saveOffProduct() {
+    if (!offResult || offResult.status !== "ok") return;
+    const fiber = offResult.product.fiber === null ? Number(offFiber.trim().replace(",", ".")) : offResult.product.fiber;
+    if (offResult.product.fiber === null && (!offFiber.trim() || !Number.isFinite(fiber) || fiber < 0)) {
+      setError("Inserisci la fibra per 100 g dall'etichetta prima di salvare l'alimento.");
+      return;
+    }
+    const food = foodSnapshotSchema.safeParse({
+      id: `off-${offResult.product.barcode}`,
+      name: offResult.product.name,
+      state: offResult.product.brands ? `confezionato, marca ${offResult.product.brands} (Open Food Facts)` : "confezionato (Open Food Facts)",
+      source: "Open Food Facts (ODbL): dati della community, verificare l'etichetta." +
+        (offResult.product.fiber === null ? " Fibra aggiunta manualmente dall'utente." : ""),
+      per100g: { ...offResult.product.per100g, fiber },
+      barcode: offResult.product.barcode,
+    });
+    if (!food.success) { setError("I valori del prodotto non sono validi."); return; }
+    onSaveFood(food.data);
+    setNotice("Prodotto inviato alla libreria personale.");
   }
 
   function recentFoods(limit = 10): { food: FoodSnapshot; grams: number }[] {
@@ -350,7 +408,8 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
         <button role="tab" aria-selected={tab === "manual"} onClick={() => { stopScanner(); setTab("manual"); }}><ChefHat size={16}/>Manuale</button>
         <button role="tab" aria-selected={tab === "barcode"} onClick={() => setTab("barcode")}><Barcode size={16}/>Codice a barre</button>
         <button role="tab" aria-selected={tab === "recent"} onClick={() => { stopScanner(); setTab("recent"); }}><RefreshCw size={16}/>Recenti</button>
-        <button role="tab" aria-selected={tab === "saved"} onClick={() => { stopScanner(); setTab("saved"); }}><Save size={16}/>Pasti salvati</button>
+        <button role="tab" aria-selected={tab === "foods"} onClick={() => { stopScanner(); setTab("foods"); }}><Save size={16}/>I miei alimenti</button>
+         <button role="tab" aria-selected={tab === "saved"} onClick={() => { stopScanner(); setTab("saved"); }}><Save size={16}/>Pasti salvati</button>
       </div>
 
       {tab === "catalog" && <div>
@@ -384,7 +443,9 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
           <label className="nf-field">Fibre per 100 g (g)<input type="number" min="0" value={manualFiber} onChange={(event) => setManualFiber(event.target.value)}/></label>
           <label className="nf-field">Grammi da registrare<input type="number" min="0.1" max="5000" step="0.1" value={manualGrams} onChange={(event) => setManualGrams(event.target.value)}/></label>
         </div>
-        <button className="nf-button" onClick={addManual}><Plus size={16}/>Aggiungi alla selezione</button>
+        <button className="nf-button" onClick={saveManualFood}><Save size={16}/>{editingFoodId ? "Aggiorna nella libreria" : "Salva nella libreria"}</button>
+         <button className="nf-text-button" onClick={addManual}><Plus size={16}/>Aggiungi alla selezione</button>
+         {editingFoodId && <button className="nf-text-button" onClick={clearManual}>Annulla modifica</button>}
       </div>}
 
       {tab === "barcode" && <div>
@@ -419,8 +480,31 @@ export function NutritionDiary({ entries, savedMeals, date, onDate, onAdd, onUpd
               </label>}
           <label className="nf-field">Grammi da registrare<input type="number" min="0.1" max="5000" step="0.1" value={offGrams} onChange={(event) => setOffGrams(event.target.value)}/></label>
           <button className="nf-button" onClick={addOffResult}><Plus size={16}/>Aggiungi alla selezione</button>
+           <button className="nf-text-button" onClick={saveOffProduct}><Save size={16}/>Salva tra i miei alimenti</button>
           <p className="nf-muted">Anteprima: nessun alimento viene registrato nel diario finche non lo aggiungi esplicitamente.</p>
         </div>}
+      </div>}
+
+      {tab === "foods" && <div>
+        <p className="nf-muted">Alimenti personali riutilizzabili. Modifiche e cancellazioni non cambiano il diario già registrato.</p>
+        <label className="nf-field">Cerca i tuoi alimenti
+          <input type="search" value={personalQuery} onChange={(event) => setPersonalQuery(event.target.value)} placeholder="Nome, stato o codice a barre"/>
+        </label>
+        <button className="nf-text-button" onClick={() => { clearManual(); setTab("manual"); }}><Plus size={16}/>Nuovo alimento</button>
+        <div className="nf-grid">
+          {savedFoods.filter((food) => [food.name, food.state, food.barcode ?? ""].some((value) =>
+            value.toLocaleLowerCase("it").includes(personalQuery.trim().toLocaleLowerCase("it")))).map((food) =>
+            <div className="nf-food-row" key={food.id}>
+              <strong>{food.name}</strong><p className="nf-muted">{food.state}</p>
+              <p>100 g: {food.per100g.kcal} kcal · P {food.per100g.protein} g · C {food.per100g.carbs} g · G {food.per100g.fat} g</p>
+              <button className="nf-button" onClick={() => addToCart(food, "100")}><Plus size={16}/>Aggiungi 100 g</button>
+              <button className="nf-text-button" onClick={() => editPersonalFood(food)}>Modifica alimento</button>
+              <button className="nf-text-button" onClick={() => {
+                if (window.confirm(`Eliminare "${food.name}" dalla libreria? Le registrazioni del diario non cambieranno.`)) onDeleteFood(food.id);
+              }}><Trash2 size={16}/>Elimina</button>
+            </div>)}
+        </div>
+        {!savedFoods.length && <p className="nf-muted">Nessun alimento personale: puoi salvarne uno dalla scheda Manuale.</p>}
       </div>}
 
       {tab === "recent" && <div className="nf-grid">

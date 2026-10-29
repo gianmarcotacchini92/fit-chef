@@ -10,7 +10,7 @@ import { clearCloudBinding } from "@/lib/cloud-storage";
 import { localStateSchema } from "@/lib/validation";
 import { initialWeeklyDietState } from "@/lib/weekly-diet";
 import { emptyNutritionState, nutritionStateSchema, targetsOnDate, type NutritionState } from "@/lib/nutrition-state";
-import { diaryEntrySchema, savedMealSchema, localDate, type DiaryEntry, type SavedMeal } from "@/lib/nutrition-diary";
+import { diaryEntrySchema, foodSnapshotSchema, savedMealSchema, localDate, type DiaryEntry, type FoodSnapshot, type SavedMeal } from "@/lib/nutrition-diary";
 import type { BodyProfile, MacroTargets } from "@/lib/nutrition-profile";
 import type { LocalState, WeekMeal } from "@/lib/types";
 import { CloudAccount } from "./cloud-account";
@@ -159,6 +159,26 @@ export function NutritionApp() {
     setNotice("Pasto salvato: puoi riutilizzarlo senza cercare di nuovo gli alimenti.");
   }
 
+  function saveFood(food: FoodSnapshot) {
+    const parsed = foodSnapshotSchema.safeParse(food);
+    if (!parsed.success) { setNotice("Alimento non valido: controlla i valori per 100 g."); return; }
+    const current = nutrition.savedFoods ?? [];
+    if (!current.some((item) => item.id === food.id) && current.length >= 500) {
+      setNotice("Hai raggiunto il limite di 500 alimenti personali. Esporta prima un backup.");
+      return;
+    }
+    updateNutrition((state) => ({
+      ...state,
+      savedFoods: (state.savedFoods ?? []).some((item) => item.id === parsed.data.id)
+        ? (state.savedFoods ?? []).map((item) => item.id === parsed.data.id ? parsed.data : item)
+        : [...(state.savedFoods ?? []), parsed.data],
+    }));
+  }
+
+  function deleteFood(id: string) {
+    updateNutrition((state) => ({ ...state, savedFoods: (state.savedFoods ?? []).filter((item) => item.id !== id) }));
+  }
+
   function confirmProfile(profile: BodyProfile, targets: MacroTargets) {
     if (nutrition.checkIns.length >= 365) { setNotice("Il registro contiene 365 rilevazioni: esporta i dati e rimuovi una rilevazione prima di aggiungerne altre."); return; }
     const checkIn = { id: crypto.randomUUID(), date: localDate(), createdAt: new Date().toISOString(), profile, targets };
@@ -230,7 +250,7 @@ export function NutritionApp() {
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
           {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
-          <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} date={date} onDate={setDate}
+          <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} savedFoods={nutrition.savedFoods ?? []} onSaveFood={saveFood} onDeleteFood={deleteFood} date={date} onDate={setDate}
             targets={targetsOnDate(nutrition, date)} onAdd={addEntries} onSaveMeal={saveMeal}
             onUpdate={(entry) => {
               const parsed = diaryEntrySchema.safeParse(entry);
