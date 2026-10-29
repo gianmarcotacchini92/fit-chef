@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   diaryEntrySchema, entryNutrition, localDate, savedMealSchema, sumDiary,
-  type DiaryEntry, type FoodSnapshot, type SavedMeal,
+  foodSnapshotSchema, type DiaryEntry, type FoodSnapshot, type SavedMeal,
 } from "@/lib/nutrition-diary";
 import { fetchOffProduct, isValidBarcode, manualFoodSnapshot, searchCatalog, type OffLookup } from "@/lib/food-search";
 import type { Nutrients, WeekMeal } from "@/lib/types";
@@ -269,6 +269,27 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     setOffResult(null); setBarcode(""); setOffFiber("");
   }
 
+  function saveOffProduct() {
+    if (!offResult || offResult.status !== "ok") return;
+    const fiber = offResult.product.fiber === null ? Number(offFiber.trim().replace(",", ".")) : offResult.product.fiber;
+    if (offResult.product.fiber === null && (!offFiber.trim() || !Number.isFinite(fiber) || fiber < 0)) {
+      setError("Inserisci la fibra per 100 g dall'etichetta prima di salvare l'alimento.");
+      return;
+    }
+    const food = foodSnapshotSchema.safeParse({
+      id: `off-${offResult.product.barcode}`,
+      name: offResult.product.name,
+      state: offResult.product.brands ? `confezionato, marca ${offResult.product.brands} (Open Food Facts)` : "confezionato (Open Food Facts)",
+      source: "Open Food Facts (ODbL): dati della community, verificare l'etichetta." +
+        (offResult.product.fiber === null ? " Fibra aggiunta manualmente dall'utente." : ""),
+      per100g: { ...offResult.product.per100g, fiber },
+      barcode: offResult.product.barcode,
+    });
+    if (!food.success) { setError("I valori del prodotto non sono validi."); return; }
+    onSaveFood(food.data);
+    setNotice("Prodotto inviato alla libreria personale.");
+  }
+
   function recentFoods(limit = 10): { food: FoodSnapshot; grams: number }[] {
     const seen = new Set<string>();
     const result: { food: FoodSnapshot; grams: number }[] = [];
@@ -459,6 +480,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
               </label>}
           <label className="nf-field">Grammi da registrare<input type="number" min="0.1" max="5000" step="0.1" value={offGrams} onChange={(event) => setOffGrams(event.target.value)}/></label>
           <button className="nf-button" onClick={addOffResult}><Plus size={16}/>Aggiungi alla selezione</button>
+           <button className="nf-text-button" onClick={saveOffProduct}><Save size={16}/>Salva tra i miei alimenti</button>
           <p className="nf-muted">Anteprima: nessun alimento viene registrato nel diario finche non lo aggiungi esplicitamente.</p>
         </div>}
       </div>}
