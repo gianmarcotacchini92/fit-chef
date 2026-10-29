@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
-  Barcode, Camera, CameraOff, ChefHat, Plus, RefreshCw, Save, Search, Trash2,
+  Barcode, Camera, CameraOff, ChevronDown, ChefHat, Plus, RefreshCw, Save, Search, Trash2,
 } from "lucide-react";
 import {
   diaryEntrySchema, entryNutrition, localDate, savedMealSchema, sumDiary,
@@ -101,6 +101,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const [meal, setMeal] = useState<WeekMeal>("lunch");
   const [tab, setTab] = useState<BuilderTab>("catalog");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const composerRef = useRef<HTMLDetailsElement | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -188,6 +189,15 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     } catch {
       setCameraError("Accesso alla fotocamera negato o non disponibile. Usa l'inserimento manuale del codice.");
       stopScanner();
+    }
+  }
+
+  function showComposer(mealId: WeekMeal) {
+    setMeal(mealId);
+    setNotice("");
+    if (composerRef.current) {
+      composerRef.current.open = true;
+      composerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -383,20 +393,28 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
 
     {MEAL_ORDER.map((mealId) => {
       const mealEntries = entries.filter((entry) => entry.date === date && entry.meal === mealId);
-      return <div className="nf-card" key={mealId}>
-        <div className="nf-section-heading">
-          <div><h2>{MEAL_LABELS[mealId]}</h2><p className="nf-muted">{round(daySummary.meals[mealId].kcal)} kcal</p></div>
-          <button className="nf-text-button" onClick={() => { setMeal(mealId); setNotice(`Nuove aggiunte andranno in ${MEAL_LABELS[mealId]}.`); }}>
-            <Plus size={16}/>Aggiungi a {MEAL_LABELS[mealId]}
-          </button>
+      const total = daySummary.meals[mealId];
+      return <details className="nf-card nf-meal-card" key={mealId}>
+        <summary className="nf-meal-summary">
+          <span className="nf-meal-heading"><strong>{MEAL_LABELS[mealId]}</strong>
+            <small>{mealEntries.length} {mealEntries.length === 1 ? "alimento" : "alimenti"}</small></span>
+          <span className="nf-meal-totals">
+            <strong>{round(total.kcal)} kcal</strong>
+            <small>P {round(total.protein, 1)} · C {round(total.carbs, 1)} · G {round(total.fat, 1)} g</small>
+          </span>
+          <ChevronDown size={19} className="nf-meal-chevron" aria-hidden="true"/>
+        </summary>
+        <div className="nf-meal-details">
+          {!mealEntries.length && <p className="nf-muted">Nessun alimento registrato.</p>}
+          {mealEntries.map((entry) => <EntryRow key={entry.id} entry={entry} onUpdate={onUpdate} onDelete={onDelete}/>)}
+          <button className="nf-text-button" onClick={() => showComposer(mealId)}><Plus size={16}/>Aggiungi a {MEAL_LABELS[mealId]}</button>
         </div>
-        {!mealEntries.length && <p className="nf-muted">Nessun alimento registrato.</p>}
-        {mealEntries.map((entry) => <EntryRow key={entry.id} entry={entry} onUpdate={onUpdate} onDelete={onDelete}/>)}
-      </div>;
+      </details>;
     })}
 
-    <div className="nf-card">
-      <div className="nf-section-heading"><div><p className="nf-eyebrow">AGGIUNGI ALIMENTI</p><h2>Componi la selezione</h2></div></div>
+    <details ref={composerRef} className="nf-card nf-composer-card">
+      <summary className="nf-composer-summary"><span><strong>Aggiungi alimenti</strong><small>Ricerca, scanner, alimenti personali e pasti salvati</small></span><ChevronDown size={19} aria-hidden="true"/></summary>
+      <div className="nf-composer-content">
       <label className="nf-field">Pasto di destinazione
         <select value={meal} onChange={(event) => setMeal(z.enum(["breakfast", "lunch", "snack", "dinner"]).parse(event.target.value))}>
           {MEAL_ORDER.map((id) => <option key={id} value={id}>{MEAL_LABELS[id]}</option>)}
@@ -532,7 +550,8 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
           </div>;
         })}
       </div>}
-    </div>
+      </div>
+    </details>
 
     {cart.length > 0 && <div className="nf-card">
       <h2>Selezione da registrare ({cart.length})</h2>
