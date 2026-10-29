@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import {
   ACTIVITY_FACTORS, defaultAdjustmentForGoal, defaultBodyProfile, estimateTdee, macroTargetsSchema,
-  profileSchema, proposeTargets, type BodyProfile, type MacroTargets,
+  profileSchema, proposeTargets, proteinMinimumError, minimumDailyProtein, type BodyProfile, type MacroTargets,
 } from "@/lib/nutrition-profile";
 
 type NutritionProfileProps = {
@@ -168,6 +168,8 @@ export function NutritionProfile({ profile, targets, onConfirm }: NutritionProfi
     }
     const parsedTargets = macroTargetsSchema.safeParse({ kcal, protein, carbs, fat });
     if (!parsedTargets.success) { setError(parsedTargets.error.issues.map((issue) => issue.message).join(" ")); return; }
+    const proteinError = proteinMinimumError(parsedProfile.weightKg, parsedTargets.data.protein);
+    if (proteinError) { setError(proteinError); return; }
     onConfirm(parsedProfile, parsedTargets.data);
   }
 
@@ -268,6 +270,7 @@ export function NutritionProfile({ profile, targets, onConfirm }: NutritionProfi
           <input type="number" inputMode="decimal" step="0.1" value={manual.fat} onChange={(event) => setManual((current) => current && { ...current, fat: event.target.value })}/>
         </label>
       </div>
+      <p className="nf-muted">Minimo proteico: {minimumDailyProtein(parseRequiredNumber(draft.weightKg) ?? 65).toFixed(1)} g/giorno (1,6 g/kg). I target manuali sotto questa soglia non possono essere confermati.</p>
       {macroMismatch && <p className="nf-alert" role="status">Le calorie indicate ({manualKcalValue} kcal) non corrispondono a quelle calcolate dai macro (circa {Math.round(declaredKcalFromMacros ?? 0)} kcal con 4/4/9). Resta modificabile: non viene corretto automaticamente.</p>}
       <button type="button" className="nf-button" onClick={handleConfirm}>Conferma profilo e target</button>
     </div>}

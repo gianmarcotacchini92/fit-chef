@@ -74,6 +74,20 @@ export const profileSchema = z.strictObject({
   }
 }) satisfies z.ZodType<BodyProfile>;
 
+/** User-defined safety constraint for planning: at least 1.6 g of protein per kg. */
+export function minimumDailyProtein(weightKg: number): number {
+  if (!Number.isFinite(weightKg) || weightKg <= 0) throw new Error("Peso corporeo non valido.");
+  return Math.ceil(weightKg * 1.6 * 10) / 10;
+}
+
+/** Validate manual targets without silently changing the user's values. */
+export function proteinMinimumError(weightKg: number, proteinGrams: number): string | null {
+  const minimum = minimumDailyProtein(weightKg);
+  return proteinGrams + 1e-9 < minimum
+    ? `Proteine insufficienti: almeno ${minimum.toFixed(1)} g al giorno (1,6 g/kg per ${weightKg} kg).`
+    : null;
+}
+
 export const macroTargetsSchema = z.strictObject({
   kcal: finite(0, 10_000),
   protein: finite(0, 1_000),
