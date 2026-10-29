@@ -14,8 +14,8 @@ export type DailyAdjustment = {
   reached: boolean; message: string;
 };
 
-function numericGrams(slot: WeeklySlot, option: WeeklyOption, grams: Record<string, string>): number {
-  const raw = grams[weeklyQuantityKey(slot, option)] ?? String(option.grams ?? "");
+function numericGrams(slot: WeeklySlot, option: WeeklyOption, grams: Record<string, string>, overrides?: Record<string, string>): number {
+  const raw = option.grams === null ? grams[weeklyQuantityKey(slot, option)] : (overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams));
   return raw.trim() ? Number(raw.replace(",", ".")) : NaN;
 }
 
@@ -35,7 +35,7 @@ export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: Rea
       if (!option) { errors.push(`${slot.label}: seleziona un'alternativa.`); continue; }
       const food = getIngredient(option.ingredientId);
       if (!food) { errors.push(`${slot.label}: alimento non trovato nel catalogo.`); continue; }
-      const grams = numericGrams(slot, option, draft.grams);
+      const grams = numericGrams(slot, option, draft.grams, draft.overrides);
       if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
         errors.push(`${slot.label}: inserisci grammi validi.`); continue;
       }
@@ -124,7 +124,9 @@ export function applyDailyAdjustment(state: WeeklyDietState, day: WeekDay, propo
     drafts[key] = {
       ...previous,
       confirmed: false,
-      grams: { ...previous.grams, [item.quantityKey]: String(Math.round(item.grams * 10) / 10) },
+      ...(state.plan?.[day][item.meal].slots.find((slot) => slot.id === item.slotId)?.options.find((opt) => opt.ingredientId === item.ingredientId)?.grams === null
+        ? { grams: { ...previous.grams, [item.quantityKey]: String(Math.round(item.grams * 10) / 10) } }
+        : { overrides: { ...previous.overrides, [item.quantityKey]: String(Math.round(item.grams * 10) / 10) } }),
     };
   }
   return { ...state, drafts };
