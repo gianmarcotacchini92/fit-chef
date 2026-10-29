@@ -35,5 +35,5 @@ test("diary meal summaries stay compact and expose food macros and editing on ex
   await lunch.getByRole("button", { name: /Aggiungi a Pranzo/ }).click();
   await expect(page.locator("details.nf-composer-card")).toHaveAttribute("open", "");
   await expect(page.getByLabel("Pasto di destinazione")).toHaveValue("lunch");
-  await expect(page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).resolves.toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
