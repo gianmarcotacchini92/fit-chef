@@ -36,17 +36,17 @@ export const RUSTIC_PORTION_SCENARIOS: Record<RusticSize, readonly [number, numb
   small: [45, 95], medium: [70, 150], large: [120, 230],
 };
 
-export function detectRusticPie(input: string): { slices: number; size: RusticSize; filling: "ricotta" | "unknown"; phrase: string } | null {
+export function detectRusticPie(input: string): { slices: number; size: RusticSize; knownGrams: number | null; filling: "ricotta" | "unknown"; phrase: string } | null {
   const match = /(?:torta\s+(?:rustica|salata)|quiche)/i.exec(input);
   if (!match) return null;
-  const before = input.slice(Math.max(0, match.index - 70), match.index);
-  const numeric = /(?:^|\s)(\d{1,2})\s*(?:fett[ea]|porzioni|pezzi)?\s*(?:piccol[ae]|medi[ae]|grand[ei])?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
-  const words = /(?:^|\s)(una?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:fett[ea]|porzioni|pezzi)?\s*(?:piccol[ae]|medi[ae]|grand[ei])?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
+  const number = "(-?\\d+(?:[.,]\\d+)?|un|una|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)";
+  const count = new RegExp(`(?:^|\\s)${number}\\s+(?:fett[ae]|porzion[ei]|pezz[oi])\\b`, "i").exec(input);
   const nums: Record<string, number> = { un: 1, una: 1, uno: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10 };
-  const slices = numeric ? Number(numeric[1]) : words ? nums[words[1].toLowerCase()] ?? 0 : 0;
-  const text = input.slice(match.index, Math.min(input.length, match.index + 100));
-  const size: RusticSize = /(?:piccol[ae]|piccole)/i.test(input) ? "small" : /(?:grand[ei])/i.test(input) ? "large" : "medium";
-  return { slices, size, filling: /ricotta/i.test(text) ? "ricotta" : "unknown", phrase: match[0] };
+  const slices = count ? nums[count[1].toLowerCase()] ?? Number(count[1].replace(",", ".")) : 0;
+  const weight = /(?:^|\s)(-?\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi)\b/i.exec(input);
+  const size: RusticSize = /\bpiccol[ae]\b/i.test(input) ? "small" : /\bgrand[ei]\b/i.test(input) ? "large" : "medium";
+  return { slices, size, knownGrams: weight ? Number(weight[1].replace(",", ".")) : null,
+    filling: /ricotta/i.test(input) ? "ricotta" : "unknown", phrase: match[0] };
 }
 
 function blend(pastryShare: number) {
@@ -63,13 +63,15 @@ function blend(pastryShare: number) {
 
 export function estimateRusticPie(config: RusticConfig): RusticEstimate | null {
   if (config.base !== "puff" || config.filling !== "ricotta") return null;
-  if (!Number.isInteger(config.slices) || config.slices < 1 || config.slices > 30) return null;
-  if (!Number.isFinite(config.pastrySharePercent) || config.pastrySharePercent < 20 || config.pastrySharePercent > 70) return null;
+  if (!Number.isInteger(config.slices) || config.slices < 0 || config.slices > 30 || (config.knownGrams === null && config.slices === 0)) return null;
+  if (!Object.hasOwn(RUSTIC_PORTION_SCENARIOS, config.size)) return null;
+  if (!Number.isFinite(config.pastrySharePercent) || config.pastrySharePercent < 25 || config.pastrySharePercent > 55) return null;
   if (config.knownGrams !== null && (!Number.isFinite(config.knownGrams) || config.knownGrams <= 0 || config.knownGrams > 5000)) return null;
   const [minPiece, maxPiece] = RUSTIC_PORTION_SCENARIOS[config.size];
   const gramsLow = config.knownGrams ?? config.slices * minPiece;
   const gramsHigh = config.knownGrams ?? config.slices * maxPiece;
   const centralGrams = (gramsLow + gramsHigh) / 2;
+  if (centralGrams > 5000) return null;
   // Sensitivity calculation, not a statistical confidence interval.
   const minDensity = blend(25).kcal;
   const maxDensity = blend(55).kcal;
@@ -86,4 +88,15 @@ export function estimateRusticPie(config: RusticConfig): RusticEstimate | null {
   };
   return { food, lowKcal: Math.round(minDensity * gramsLow / 100),
     highKcal: Math.round(maxDensity * gramsHigh / 100), gramsLow, gramsHigh, centralGrams };
+}
+
+/** Legacy prose is read only for migration; all new portions use validated metadata. */
+export function rusticReuseGrams(food: FoodSnapshot, slices: number, knownGrams: number | null, confirmed: boolean): number | null {
+  if (knownGrams !== null) return Number.isFinite(knownGrams) && knownGrams > 0 && knownGrams <= 5000 ? knownGrams : null;
+  if (!confirmed || !Number.isInteger(slices) || slices < 1 || slices > 30) return null;
+  const legacy = /Porzione salvata: ([0-9.]+) g per ([0-9]+) fette/.exec(food.source);
+  const portion = food.rusticPortion ?? (legacy ? { grams: Number(legacy[1]), slices: Number(legacy[2]) } : null);
+  if (!portion?.slices || portion.slices < 1 || portion.slices > 30 || !Number.isFinite(portion.grams) || portion.grams <= 0 || portion.grams > 5000) return null;
+  const grams = portion.grams / portion.slices * slices;
+  return Number.isFinite(grams) && grams > 0 && grams <= 5000 ? grams : null;
 }

@@ -171,11 +171,11 @@ export function NutritionApp() {
 
   function saveFood(food: FoodSnapshot) {
     const parsed = foodSnapshotSchema.safeParse(food);
-    if (!parsed.success) { setNotice("Alimento non valido: controlla i valori per 100 g."); return; }
+    if (!parsed.success) { setNotice("Alimento non valido: controlla i valori per 100 g."); return false; }
     const current = nutrition.savedFoods ?? [];
     if (!current.some((item) => item.id === food.id) && current.length >= 500) {
       setNotice("Hai raggiunto il limite di 500 alimenti personali. Esporta prima un backup.");
-      return;
+      return false;
     }
     updateNutrition((state) => ({
       ...state,
@@ -183,6 +183,7 @@ export function NutritionApp() {
         ? (state.savedFoods ?? []).map((item) => item.id === parsed.data.id ? parsed.data : item)
         : [...(state.savedFoods ?? []), parsed.data],
     }));
+    return true;
   }
 
   function deleteFood(id: string) {
