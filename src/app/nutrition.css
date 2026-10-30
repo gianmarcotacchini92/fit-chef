@@ -206,3 +206,12 @@
  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row { padding: 10px; }
  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row p { font-size: 12px; }
 }
+
+/* Free text meal entry keeps all computations in-browser and the preview distinct from saved diary entries. */
+.nf-natural-entry { border-color: #badbd1; }
+.nf-natural-entry .nf-section-heading { margin-bottom: 8px; }
+.nf-natural-input { width: 100%; min-height: 90px; padding: 12px; border: 1px solid #cbd5d3; border-radius: 12px; background: #fff; font: inherit; resize: vertical; color: inherit; }
+.nf-natural-input:focus-visible { outline: 3px solid #9ccac0; outline-offset: 2px; }
+.nf-natural-preview { margin-top: 16px; }
+.nf-natural-preview .nf-food-row { margin: 9px 0; padding: 13px; }
+.nf-natural-preview .nf-field { max-width: 200px; }
