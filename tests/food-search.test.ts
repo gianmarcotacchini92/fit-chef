@@ -165,7 +165,7 @@ test("barcode lookup retries v2 when product exists there but v3 reports missing
   assert.equal(result.status, "ok");
   if (result.status === "ok") assert.equal(result.product.per100g.kcal, 550);
   assert.equal(calls.length, 2);
-  assert.match(calls[1], /api\\/v2\\/product/);
+  assert.ok(calls[1].includes("/api/v2/product/"));
 });
 
 test("barcode lookup does not invent missing nutrient values on fallback", async () => {
