@@ -485,8 +485,11 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
           <p className="nf-muted">Inquadra il codice a barre. La fotocamera e opzionale, legge solo il numero e non riconosce il cibo; le immagini restano sul dispositivo.</p>
         </div>
         {cameraError && <p className="nf-alert" role="alert">{cameraError}</p>}
-        {offResult?.status === "not-found" && <p className="nf-alert" role="alert">{offResult.message}</p>}
-        {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message}</p>}
+        {offResult?.status === "not-found" && <p className="nf-alert" role="alert">{offResult.message} Verifica anche la pagina pubblica del prodotto; la scheda può esistere senza un profilo nutrizionale importabile.</p>}
+        {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message} Se lo trovi sul sito, controlla la tabella nutrizionale e salva il prodotto dalla scheda Manuale.</p>}
+        {isValidBarcode(barcode) && <p className="nf-muted">
+          Codice letto: <strong>{barcode}</strong>. <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(barcode)}`} target="_blank" rel="noreferrer noopener">Apri la scheda su Open Food Facts</a>.
+        </p>}
         {offResult?.status === "ok" && <div className="nf-food-row">
           <strong>{offResult.product.name}</strong>
           {offResult.product.brands && <p className="nf-muted">{offResult.product.brands}</p>}
@@ -498,7 +501,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
               </label>}
           <label className="nf-field">Grammi da registrare<input type="number" min="0.1" max="5000" step="0.1" value={offGrams} onChange={(event) => setOffGrams(event.target.value)}/></label>
           <button className="nf-button" onClick={addOffResult}><Plus size={16}/>Aggiungi alla selezione</button>
-           <button className="nf-text-button" onClick={saveOffProduct}><Save size={16}/>Salva tra i miei alimenti</button>
+          <button className="nf-text-button" onClick={saveOffProduct}><Save size={16}/>Salva tra i miei alimenti</button>
           <p className="nf-muted">Anteprima: nessun alimento viene registrato nel diario finche non lo aggiungi esplicitamente.</p>
         </div>}
       </div>}
