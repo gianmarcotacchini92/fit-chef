@@ -94,6 +94,22 @@ export function SmartMealInput({ date, savedFoods, onAdd, onSaveFood }: {
       <button type="button" className="nf-button" onClick={interpret} disabled={!description.trim()}><Plus size={16}/> Interpreta il pasto</button>
     </div>
     {guided && <>
+      {savedFoods.filter(food => food.id.startsWith("personal-rustic-")).length > 0 && <div className="nf-food-row">
+        <strong>Hai già salvato una torta rustica?</strong>
+        <p className="nf-muted">Puoi riutilizzare la tua precedente stima, senza ricomporre il piatto.</p>
+        {savedFoods.filter(food => food.id.startsWith("personal-rustic-")).map(food => {
+          const match = /Porzione salvata: ([0-9.]+) g per ([0-9]+) fette/.exec(food.source);
+          const grams = match ? Number(match[1]) / Number(match[2]) * (guided.slices || 1) : 0;
+          return <button type="button" key={food.id} className="nf-text-button" disabled={!Number.isFinite(grams) || grams <= 0 || grams > 5000}
+            onClick={() => {
+              setItems([{ key: crypto.randomUUID(), food, grams: String(grams), note: "Porzione riutilizzata dal tuo piatto salvato: verifica dimensioni e ingredienti.", estimated: true }]);
+              setReady(true); setWarnings([]); setMessage("Piatto personale recuperato, verifica i grammi prima di registrarlo.");
+            }}>
+            Usa {food.name} ({Math.round(grams)} g indicativi)
+          </button>;
+        })}
+      </div>}
+
       {warnings.length > 0 ? <div className="nf-alert" role="alert">{warnings.join(" ")}</div>
       : <RusticPieGuide key={description} initialSlices={guided.slices} initialSize={guided.size} onSave={onSaveFood}
           onPreview={(food, grams, note) => {
