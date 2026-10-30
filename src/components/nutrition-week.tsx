@@ -9,7 +9,7 @@ import { getIngredient } from "@/lib/catalog";
 import { plannedDay, adjustPlannedDay, applyDailyAdjustment, type DailyAdjustment } from "@/lib/daily-plan";
 import { minimumDailyProtein } from "@/lib/nutrition-profile";
 import type { MacroTargets } from "@/lib/nutrition-profile";
-import { catalogFood, type DiaryEntry } from "@/lib/nutrition-diary";
+import { catalogFood, type DiaryEntry, type FoodSnapshot } from "@/lib/nutrition-diary";
 import type { WeeklyDietState } from "@/lib/types";
 
 type Props = {
@@ -19,15 +19,16 @@ type Props = {
   onAdd: (entries: DiaryEntry[]) => void;
   targets?: MacroTargets;
   weightKg?: number;
+  personalFoods?: FoodSnapshot[];
 };
 
-export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg }: Props) {
+export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg, personalFoods = [] }: Props) {
   const [error, setError] = useState("");
   const [importing, setImporting] = useState(false);
   const [desiredKcal, setDesiredKcal] = useState("");
   const [locks, setLocks] = useState<string[]>([]);
   const [proposal, setProposal] = useState<DailyAdjustment | null>(null);
-  const currentDay = useMemo(() => plannedDay(state, state.day, new Set(locks)), [state, locks]);
+  const currentDay = useMemo(() => plannedDay(state, state.day, new Set(locks), personalFoods), [state, locks, personalFoods]);
   const proteinFloor = weightKg && weightKg > 0 ? minimumDailyProtein(weightKg) : null;
   function previewDay() {
     setError("");
@@ -67,12 +68,12 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
   }
 
   function recordMeal() {
-    const result = resolveWeeklyMeal(state.day, state.meal, draft, state.plan);
+    const result = resolveWeeklyMeal(state.day, state.meal, draft, state.plan, personalFoods);
     if (result.errors.length) { setError(result.errors.join(" ")); return; }
     const createdAt = new Date().toISOString();
     onAdd(result.items.map((item) => ({
       id: crypto.randomUUID(), date, meal: state.meal, createdAt,
-      food: catalogFood(item.ingredientId), grams: item.grams,
+      food: personalFoods.find(food=>food.id===item.ingredientId) ?? catalogFood(item.ingredientId), grams: item.grams,
     })));
   }
 
@@ -129,7 +130,7 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
       {meal?.freeChoice ? <p className="nf-alert">Pasto libero: aggiungi alimenti e quantita dal diario. Non assegniamo calorie a un pasto non specificato.</p> : <>
         <div className="nf-grid">{meal?.slots.map((slot) => {
           const option = selectedWeeklyOption(slot, draft);
-          const food = option ? getIngredient(option.ingredientId) : undefined;
+          const food = option ? (getIngredient(option.ingredientId) ?? personalFoods.find(f=>f.id===option.ingredientId)) : undefined;
           return <div className="nf-food-row" key={slot.id}>
             <strong>{slot.label}</strong>
             {slot.options.length > 1 && <label className="nf-field">Alternativa {slot.label}
@@ -141,6 +142,14 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
               </select>
             </label>}
             {food && <p>{food.name} <span className="nf-muted">— {food.state}</span></p>}
+            <label className="nf-field">Sostituisci con alimento o ricetta personale
+              <select value={draft.substitutions?.[slot.id] ?? ""} onChange={event => updateDraft({
+                substitutions: { ...draft.substitutions, [slot.id]: event.target.value }, confirmed: false,
+              })}>
+                <option value="">Usa alimento del piano</option>
+                {personalFoods.map(food=><option key={food.id} value={food.id}>{food.name}</option>)}
+              </select>
+            </label>
             {option && <label className="nf-field">Grammi {slot.label}
               <input type="number" min="0.1" max="5000" step="0.1" value={option.grams === null ? (draft.grams[weeklyQuantityKey(slot, option)] ?? "") : (draft.overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams))} onChange={(event) => updateDraft({
                 ...(option.grams === null
