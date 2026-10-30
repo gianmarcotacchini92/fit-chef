@@ -77,11 +77,12 @@ export function RecipeBuilder({ savedFoods, onSave }: {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Ricetta non valida."); }
   }
   return <section className="nf-food-row" aria-label="Crea ricetta personale">
-    <h3>Crea una ricetta personale</h3>
+    <h2>Crea una ricetta da zero</h2>
+    <p className="nf-muted">1. Dai un nome alla ricetta · 2. Seleziona gli ingredienti e pesa ciascuno · 3. Inserisci il peso totale dopo la cottura · 4. Salva. Non devi creare prima un pasto nel Diario.</p>
     <p className="nf-muted">Per esempio i tuoi pancake: inserisci farina, uova, latte e gli altri ingredienti realmente utilizzati. Pesa il totale dei pancake pronti; le kcal totali non cambiano per l&apos;evaporazione dell&apos;acqua, ma quelle per 100 g sì.</p>
-    <label className="nf-field">Nome ricetta<input value={name} maxLength={160} placeholder="Pancake fatti in casa" onChange={event => setName(event.target.value)}/></label>
+    <label className="nf-field">1 · Nome della ricetta<input value={name} maxLength={160} placeholder="Pancake fatti in casa" onChange={event => setName(event.target.value)}/></label>
     {chosen.map(line => <div className="nf-food-row" key={line.key}>
-      <label className="nf-field">Ingrediente
+      <label className="nf-field">2 · Ingrediente
         <select value={line.foodId} onChange={event => setLines(old => old.map(row => row.key === line.key ? { ...row, foodId: event.target.value } : row))}>
           <option value="">Seleziona un alimento</option>
           {foods.map(food => <option key={food.id} value={food.id}>{food.name} — {food.state}</option>)}
@@ -92,8 +93,8 @@ export function RecipeBuilder({ savedFoods, onSave }: {
     </div>)}
     <button type="button" className="nf-text-button" disabled={lines.length >= 60} onClick={() => setLines(old => [...old, { key: crypto.randomUUID(), foodId: "", grams: "" }])}><Plus size={16}/>Aggiungi ingrediente</button>
     <p>Stima totale impasto/ricetta: {Math.round(estimated.kcal)} kcal · P {estimated.protein.toFixed(1)} g · C {estimated.carbs.toFixed(1)} g · G {estimated.fat.toFixed(1)} g</p>
-    <label className="nf-field">Peso totale del prodotto finito (g)<input type="number" min="0.1" max="100000" step="0.1" value={yieldGrams} onChange={event => setYieldGrams(event.target.value)} placeholder="Pesa tutti i pancake pronti"/></label>
-    <button type="button" className="nf-button" onClick={save}><Plus size={16}/>Salva ricetta negli alimenti personali</button>
+    <label className="nf-field">3 · Peso totale del prodotto finito (g)<input type="number" min="0.1" max="100000" step="0.1" value={yieldGrams} onChange={event => setYieldGrams(event.target.value)} placeholder="Pesa tutti i pancake pronti"/></label>
+    <button type="button" className="nf-button" onClick={save}><Plus size={16}/>4 · Salva ricetta</button>
     {message && <p role="status" className="nf-alert">{message}</p>}
   </section>;
 }
