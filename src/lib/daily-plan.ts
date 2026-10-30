@@ -1,4 +1,5 @@
 import { getIngredient } from "./catalog";
+import type { FoodSnapshot } from "./nutrition-diary";
 import { minimumDailyProtein } from "./nutrition-profile";
 import { emptyWeeklyDraft, selectedWeeklyOption, weeklyMealKey, weeklyQuantityKey, WEEK_MEALS } from "./weekly-diet";
 import type { WeekDay, WeekMeal, WeeklyDietState, WeeklySlot, WeeklyOption } from "./types";
@@ -19,7 +20,7 @@ function numericGrams(slot: WeeklySlot, option: WeeklyOption, grams: Record<stri
   return raw?.trim() ? Number(raw.replace(",", ".")) : NaN;
 }
 
-export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: ReadonlySet<string> = new Set()): DailyPlan {
+export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: ReadonlySet<string> = new Set(), personalFoods: FoodSnapshot[] = []): DailyPlan {
   const items: PlannedItem[] = [];
   const errors: string[] = [];
   if (!state.plan) return { items, errors: ["Importa prima un piano privato."], kcal: 0, protein: 0 };
@@ -33,7 +34,7 @@ export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: Rea
     for (const slot of plan.slots) {
       const option = selectedWeeklyOption(slot, draft);
       if (!option) { errors.push(`${slot.label}: seleziona un'alternativa.`); continue; }
-      const food = getIngredient(option.ingredientId);
+      const food = getIngredient(option.ingredientId) ?? personalFoods.find(item=>item.id===option.ingredientId);
       if (!food) { errors.push(`${slot.label}: alimento non trovato nel catalogo.`); continue; }
       const grams = numericGrams(slot, option, draft.grams, draft.overrides);
       if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
@@ -44,7 +45,7 @@ export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: Rea
       items.push({
         meal, slotId: slot.id, label: slot.label, ingredientId: option.ingredientId,
         quantityKey, grams, originalGrams: grams, locked: lockedKeys.has(lockKey),
-        kcalPerGram: food.nutrients.kcal / 100, proteinPerGram: food.nutrients.protein / 100,
+        kcalPerGram: ("nutrients" in food ? food.nutrients : food.per100g).kcal / 100, proteinPerGram: ("nutrients" in food ? food.nutrients : food.per100g).protein / 100,
       });
     }
   }
