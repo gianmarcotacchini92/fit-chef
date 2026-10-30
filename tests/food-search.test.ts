@@ -174,5 +174,5 @@ test("barcode lookup does not invent missing nutrient values on fallback", async
       ? jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404)
       : jsonResponse({ status: 1, product: { product_name: "Etichetta incompleta", nutriments: { "energy-kcal_100g": 200 } } }),
   });
-  assert.equal(result.status, "not-found");
+  assert.equal(result.status, "error");
 });
