@@ -6,10 +6,11 @@ import type { FoodSnapshot } from "./nutrition-diary";
  * puff pastry baked FDC 172738. Retrieved October 2026.
  * https://www.ars.usda.gov/ARSUserFiles/80400525/Data/SR/SR28/reports/sr28fg01.pdf
  * https://fdc.nal.usda.gov/food-details/172738/nutrients
+ * FDC reports 45.7 g total carbohydrate incl. 1.5 g fiber. FIT Diario tracks available carbs: 44.2 g.
  */
 export const RUSTIC_INGREDIENTS = {
   ricotta: { kcal: 174, protein: 11.26, carbs: 3.04, fat: 12.98, fiber: 0 },
-  pastry: { kcal: 558, protein: 7.4, carbs: 45.7, fat: 38.5, fiber: 1.5 },
+  pastry: { kcal: 558, protein: 7.4, carbs: 44.2, fat: 38.5, fiber: 1.5 },
 } as const;
 
 export type RusticSize = "small" | "medium" | "large";
