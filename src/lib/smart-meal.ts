@@ -51,13 +51,14 @@ function quantity(prefix: string): number | null {
 }
 
 function catalogMatch(part: string, personalFoods: readonly FoodSnapshot[]): FoodSnapshot | null {
-  const normalized = NORMALIZE(part).replace(/\b(?:di|del|della|con|al|alla|evo|alla piastra)\b/g, " ").trim();
+  const normalized = NORMALIZE(part);
+  const catalogText = normalized.replace(/\b(?:di|del|della|con|al|alla|alla piastra)\b/g, " ").trim();
   const personal = personalFoods
     .filter((item) => NORMALIZE(item.name).length >= 3 && normalized.includes(NORMALIZE(item.name)))
     .sort((a, b) => b.name.length - a.name.length)[0];
   if (personal) return personal;
   const candidates = INGREDIENTS.flatMap((item) => [item.name, ...item.aliases]
-    .filter((alias) => NORMALIZE(alias).length >= 3 && normalized.includes(NORMALIZE(alias)))
+    .filter((alias) => NORMALIZE(alias).length >= 3 && catalogText.includes(NORMALIZE(alias)))
     .map((alias) => ({ item, length: NORMALIZE(alias).length })));
   candidates.sort((a, b) => b.length - a.length);
   const match = candidates[0]?.item;
