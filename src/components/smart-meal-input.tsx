@@ -65,7 +65,7 @@ export function SmartMealInput({ date, savedFoods, onAdd }: {
     <div className="nf-section-heading">
       <div><p className="nf-eyebrow">GRATIS, SENZA AI ESTERNA</p><h2><MessageCircle size={20} aria-hidden="true"/> Racconta cosa hai mangiato</h2></div>
     </div>
-    <p className="nf-muted">Esempio: «3 pezzi di margherita, 2 pezzi di pizza con patate, un supplì e 2 crocchette» oppure «90 g riso, 150 g pollo, 10 g olio». Il testo resta sul dispositivo; non viene inviato a un servizio AI.</p>
+    <p className="nf-muted">Esempi: «4 polpette in bianco, 2 fette di arrosto di maiale» oppure «3 pezzi di margherita, un supplì» oppure «90 g riso, 150 g pollo». Il testo resta sul dispositivo; non viene inviato a un servizio AI.</p>
     <label className="nf-field">Descrizione del pasto
       <textarea rows={3} maxLength={1500} value={description} placeholder="Ho mangiato..." onChange={(event) => {
         setDescription(event.target.value); setReady(false); setItems([]); setWarnings([]); setMessage("");
@@ -101,7 +101,7 @@ export function SmartMealInput({ date, savedFoods, onAdd }: {
           <strong>{Math.round(total.kcal)} kcal</strong>
           <span>P {total.protein.toFixed(1)} g · C {total.carbs.toFixed(1)} g · G {total.fat.toFixed(1)} g</span>
         </div>
-        {items.some((item) => item.estimated) && <p className="nf-muted">Pizza e fritti: valori editoriali indicativi, non verificati per la pizzeria. Controlla le dimensioni e modifica i pesi. I condimenti effettivi possono variare molto.</p>}
+        {items.some((item) => item.estimated) && <p className="nf-muted">Alcune porzioni e ricette sono stime indicative, non valori misurati del tuo piatto. Controlla i grammi e considera ingredienti, olio e condimenti prima di registrare.</p>}
         <button className="nf-button" type="button" disabled={warnings.length > 0 || invalid} onClick={register}>Conferma e registra {items.length} alimenti</button>
       </>}
     </div>}

@@ -15,6 +15,13 @@ const PIZZERIA = [
   { key: "crocchetta", pattern: /crocchett[ae]/i, name: "Crocchetta di patate", values: [235, 4, 30, 11, 3], pieceGrams: 50 },
 ] as const;
 
+const HOME_DISHES = [
+  { key: "polpette", pattern: /polpett[ae]/i, name: "Polpette in bianco (stima)", values: [210, 16, 8, 13, 1], pieceGrams: 45, unit: "polpetta" },
+  { key: "arrosto-maiale", pattern: /arrosto di maiale|maiale arrosto|lonza arrosto/i, name: "Arrosto di maiale (stima)", values: [195, 27, 1, 9, 0], pieceGrams: 65, unit: "fetta" },
+  { key: "arrosto-vitello", pattern: /arrosto di vitello|vitello arrosto/i, name: "Arrosto di vitello (stima)", values: [175, 27, 1, 7, 0], pieceGrams: 65, unit: "fetta" },
+  { key: "polpettone", pattern: /polpettone/i, name: "Polpettone (stima)", values: [215, 17, 7, 13, 1], pieceGrams: 85, unit: "fetta" },
+  { key: "lasagna", pattern: /lasagn[ae]/i, name: "Lasagna al forno (stima)", values: [170, 9, 16, 8, 1], pieceGrams: 180, unit: "porzione" },
+] as const;
 const WORD_NUMBERS: Record<string, number> = {
   un: 1, uno: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6,
   sette: 7, otto: 8, nove: 9, dieci: 10,
@@ -30,6 +37,16 @@ const foodFromPizza = (item: typeof PIZZERIA[number]): FoodSnapshot => ({
     fat: item.values[3], fiber: item.values[4],
   },
 });
+
+function homeDishFood(item: typeof HOME_DISHES[number]): FoodSnapshot {
+  return {
+    id: "estimate-" + item.key,
+    name: item.name,
+    state: "piatto cotto: ricetta e quantità di olio sconosciute",
+    source: "Stima editoriale generica, non dati del piatto consumato. Ingredienti e preparazione possono cambiare molto calorie e macro. Correggi il peso; per precisione crea la tua ricetta.",
+    per100g: { kcal: item.values[0], protein: item.values[1], carbs: item.values[2], fat: item.values[3], fiber: item.values[4] },
+  };
+}
 
 export type SmartMealItem = {
   food: FoodSnapshot;
@@ -87,6 +104,24 @@ export function parseSmartMeal(input: string, personalFoods: readonly FoodSnapsh
       if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) { warnings.push(`«${original}»: quantità non valida.`); continue; }
       items.push({ food: foodFromPizza(piece), grams, estimated: !explicitGrams,
         description: explicitGrams ? "Peso dichiarato; nutrienti stimati" : `${count} pezzi × ~${piece.pieceGrams} g; verifica il peso` });
+      continue;
+    }
+    const dish = HOME_DISHES.find((candidate) => candidate.pattern.test(part));
+    if (dish) {
+      const count = quantity(part.slice(0, part.search(dish.pattern)));
+      if (!explicitGrams && (count === null || !Number.isInteger(count) || count < 1 || count > 30)) {
+        warnings.push(`«${original}»: indica quanti pezzi/fette hai mangiato o i grammi.`);
+        continue;
+      }
+      const grams = explicitGrams ? Number(explicitGrams[1].replace(",", ".")) : count! * dish.pieceGrams;
+      if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
+        warnings.push(`«${original}»: quantità non valida.`);
+        continue;
+      }
+      items.push({
+        food: homeDishFood(dish), grams, estimated: true,
+        description: explicitGrams ? "Peso dichiarato; ingredienti e macro stimati" : `${count} × ~${dish.pieceGrams} g per ${dish.unit}; controlla la dimensione`,
+      });
       continue;
     }
     if (!explicitGrams) {

@@ -45,3 +45,31 @@ test("input is bounded and user data is never sent to a remote provider", () => 
   assert.equal(parseSmartMeal("x".repeat(1501)).items.length, 0);
   assert.ok(parseSmartMeal("x".repeat(1501)).warnings.length);
 });
+
+test("everyday dinner: polpette in bianco and roast pork slices are recognized", () => {
+  const result = parseSmartMeal("4 polpette in bianco, 2 fette di arrosto di maiale");
+  assert.deepEqual(result.warnings, []);
+  assert.equal(result.items.length, 2);
+  assert.deepEqual(result.items.map(item => item.grams), [180, 130]);
+  assert.ok(result.items.every(item => item.estimated));
+  assert.ok(result.items.every(item => item.food.source.includes("Stima editoriale")));
+});
+
+test("home cooked dishes with declared gram weight keep weight and label uncertain macros", () => {
+  const result = parseSmartMeal("180 g polpette in bianco, 130 g arrosto di maiale");
+  assert.deepEqual(result.warnings, []);
+  assert.deepEqual(result.items.map(item => item.grams), [180, 130]);
+  assert.ok(result.items.every(item => item.estimated));
+});
+
+test("home cooked dishes without any quantity still require clarification", () => {
+  const result = parseSmartMeal("polpette in bianco, arrosto di maiale");
+  assert.equal(result.items.length, 0);
+  assert.equal(result.warnings.length, 2);
+});
+
+test("everyday plated dishes handle pieces and portions conservatively", () => {
+  const result = parseSmartMeal("2 fette di polpettone, 1 porzione di lasagna");
+  assert.deepEqual(result.warnings, []);
+  assert.deepEqual(result.items.map(item => item.grams), [170, 180]);
+});
