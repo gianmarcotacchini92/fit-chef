@@ -146,6 +146,44 @@ function parseOffBody(body: OffBody, barcode: string): OffLookup {
   };
 }
 
+type OffV2Body = {
+  status?: number; product?: {
+    product_name?: unknown; brands?: unknown;
+    nutriments?: Record<string, unknown>;
+    nutrition_data_per?: unknown;
+  };
+};
+
+function parseOffV2(body: OffV2Body, code: string): OffLookup {
+  if (body.status === 0) return { status: "not-found", message: "Prodotto non trovato su Open Food Facts (v2/v3)." };
+  const p = body.product;
+  if (body.status !== 1 || !p?.nutriments) return { status: "error", message: "Il prodotto esiste ma mancano i dati nutrizionali leggibili." };
+  if (p.nutrition_data_per !== undefined && p.nutrition_data_per !== "100g")
+    return { status: "error", message: "I dati sono per porzione o per 100 ml: verifica l'etichetta prima di inserirli." };
+  const n = p.nutriments;
+  const val = (key: string): number | null => typeof n[key] === "number" && Number.isFinite(n[key]) && (n[key] as number) >= 0 ? n[key] as number : null;
+  const energy = val("energy-kcal_100g") ?? (val("energy-kj_100g") === null ? null : val("energy-kj_100g")! / KJ_PER_KCAL);
+  const protein = val("proteins_100g"), carbs = val("carbohydrates_100g"), fat = val("fat_100g");
+  if (energy === null || protein === null || carbs === null || fat === null)
+    return { status: "error", message: "Prodotto trovato, ma mancano kcal/proteine/carboidrati/grassi per 100 g: inserisci i dati dall'etichetta." };
+  const name = typeof p.product_name === "string" && p.product_name.trim() ? p.product_name.trim() : "Prodotto senza nome";
+  return { status: "ok", product: {
+    name, brands: typeof p.brands === "string" ? p.brands : "", barcode: code,
+    per100g: { kcal: round2(energy), protein: round2(protein), carbs: round2(carbs), fat: round2(fat) },
+    fiber: val("fiber_100g") === null ? null : round2(val("fiber_100g")!),
+  } };
+}
+
+async function requestOffV2(code: string, doFetch: typeof fetch, signal: AbortSignal): Promise<OffLookup> {
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=code,product_name,brands,nutriments,nutrition_data_per&app_name=${OFF_APP_NAME}`;
+  const response = await doFetch(url, { signal });
+  if (!response.ok) return { status: "error", message: `Open Food Facts v2 non raggiungibile (HTTP ${response.status}).` };
+  let body: OffV2Body;
+  try { body = await response.json() as OffV2Body; }
+  catch { return { status: "error", message: "Risposta Open Food Facts non valida." }; }
+  return parseOffV2(body, code);
+}
+
 type OffOptions = { signal?: AbortSignal; timeoutMs?: number; fetchImpl?: typeof fetch; now?: () => number };
 
 /**
@@ -188,10 +226,15 @@ async function requestOff(code: string, options: OffOptions): Promise<OffLookup>
     const response = await doFetch(url, { signal });
     let body: OffBody | null = null;
     try { body = await response.json() as OffBody; } catch { body = null; }
-    if (response.status === 404 && body?.result?.id === "product_not_found") return parseOffBody(body, code);
-    if (!response.ok) return { status: "error", message: `Open Food Facts non raggiungibile (codice ${response.status}).` };
-    if (!body) return { status: "error", message: "Risposta di Open Food Facts non leggibile." };
-    return parseOffBody(body, code);
+    const primary = (response.ok || response.status === 404) && body ? parseOffBody(body, code)
+      : { status: "error" as const, message: `Risposta Open Food Facts v3 non disponibile (HTTP ${response.status}).` };
+    if (primary.status === "ok") return primary;
+    // Retry against the documented v2 read endpoint when the newer API reports a missing product
+    // or an unsupported nutrition structure. Never estimate absent values.
+    const fallback = await requestOffV2(code, doFetch, signal);
+    if (fallback.status === "ok") return fallback;
+    if (primary.status === "not-found" && fallback.status === "error" && fallback.message.startsWith("Prodotto trovato")) return fallback;
+    return primary; // Preserve the actionable v3 error if the fallback also cannot provide a valid product.
   } catch {
     return { status: "error", message: "Richiesta a Open Food Facts non riuscita, scaduta o annullata: controlla la connessione e riprova." };
   } finally {
