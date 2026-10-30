@@ -106,6 +106,24 @@ export function parseSmartMeal(input: string, personalFoods: readonly FoodSnapsh
         description: explicitGrams ? "Peso dichiarato; nutrienti stimati" : `${count} pezzi × ~${piece.pieceGrams} g; verifica il peso` });
       continue;
     }
+    const dish = HOME_DISHES.find((candidate) => candidate.pattern.test(part));
+    if (dish) {
+      const count = quantity(part.slice(0, part.search(dish.pattern)));
+      if (!explicitGrams && (count === null || !Number.isInteger(count) || count < 1 || count > 30)) {
+        warnings.push(`«${original}»: indica quanti pezzi/fette hai mangiato o i grammi.`);
+        continue;
+      }
+      const grams = explicitGrams ? Number(explicitGrams[1].replace(",", ".")) : count! * dish.pieceGrams;
+      if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
+        warnings.push(`«${original}»: quantità non valida.`);
+        continue;
+      }
+      items.push({
+        food: homeDishFood(dish), grams, estimated: true,
+        description: explicitGrams ? "Peso dichiarato; ingredienti e macro stimati" : `${count} × ~${dish.pieceGrams} g per ${dish.unit}; controlla la dimensione`,
+      });
+      continue;
+    }
     if (!explicitGrams) {
       warnings.push(`«${original}»: alimento o peso non riconosciuto. Indica grammi o usa un gusto di pizza/fritto supportato.`);
       continue;
