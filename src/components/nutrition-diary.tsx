@@ -391,7 +391,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const remainingKcal = targets ? targets.kcal - daySummary.total.kcal : null;
 
   return <section className="nf-diary">
-    <SmartMealInput date={date} savedFoods={savedFoods} onAdd={onAdd}/>
+    <SmartMealInput date={date} savedFoods={savedFoods} onAdd={onAdd} onSaveFood={onSaveFood}/>
     <div className="nf-card">
       <div className="nf-section-heading">
         <div><p className="nf-eyebrow">OGGI, NON UN PIANO IDEALE</p><h2>Riepilogo del {date}</h2></div>
