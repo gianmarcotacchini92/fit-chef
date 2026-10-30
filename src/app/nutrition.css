@@ -173,3 +173,36 @@
   .nf-meal-heading strong { font-size: 15px; }
   .nf-quick-action { min-height: 65px; }
 }
+
+/* My Nutrition-inspired clarity: retain existing dashboard functionality and weekly plan preview. */
+.nf-app { background: #f6f8fa; color: #20352c; }
+.nf-header { max-width: 1180px; padding: 15px 24px 12px; }
+.nf-header-tools { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nf-settings-link { display: flex; align-items: center; gap: 7px; background: white; border: 1px solid #dce7e0; color: #23644a; border-radius: 999px; padding: 9px 14px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.nf-settings-link[aria-pressed="true"] { background: #e4f3e9; border-color: #a8cbb6; }
+.nf-nav { max-width: 1110px; border-radius: 16px; background: #e9efeb; gap: 5px; }
+.nf-nav button { border-radius: 12px; font-size: 13px; min-height: 48px; }
+.nf-nav button[aria-pressed="true"] { color: #17664a; }
+.nf-shell { max-width: 1180px; padding-top: 22px; }
+.nf-card { border-color: #e4ebe6; box-shadow: 0 4px 16px #20352c08; }
+.nf-diary > .nf-card:first-child { background: linear-gradient(135deg,#fff,#f5faf7); border-color: #d5e8dc; }
+.nf-diary > .nf-card:first-child .nf-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 11px; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child { grid-column: 1 / -1; background: #e6f3eb; border: 1px solid #d0e6d8; padding: 18px 22px; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child p { font-size: 19px; font-weight: 700; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child strong { color: #17664a; }
+.nf-diary > .nf-card:first-child progress { height: 10px; accent-color: #17664a; }
+.nf-meal-card .nf-meal-totals > strong { color: #17664a; }
+.nf-plan-preview { border-color: #dbe9df; background: #fff; }
+@media(max-width:680px) {
+ .nf-header { padding: 13px 14px 9px; flex-wrap: wrap; }
+ .nf-header-tools { width: 100%; justify-content: space-between; gap: 8px; }
+ .nf-settings-link { padding: 8px 10px; font-size: 11px; }
+ .nf-nav { margin: 0 12px; gap: 3px; }
+ .nf-nav button { font-size: 10px; min-height: 58px; padding: 9px 2px; }
+ .nf-shell { padding-top: 15px; }
+ .nf-diary > .nf-card:first-child .nf-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+ .nf-diary > .nf-card:first-child .nf-grid > :first-child { grid-column: 1/-1; padding: 14px; }
+ .nf-diary > .nf-card:first-child .nf-grid > :last-child { grid-column: 1/-1; }
+ .nf-diary > .nf-card:first-child .nf-grid .nf-food-row { padding: 10px; }
+ .nf-diary > .nf-card:first-child .nf-grid .nf-food-row p { font-size: 12px; }
+}

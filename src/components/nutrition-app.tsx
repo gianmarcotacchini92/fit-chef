@@ -27,9 +27,8 @@ const STATIC_SITE = process.env.NEXT_PUBLIC_FIT_STATIC === "true";
 type Tab = "diary" | "profile" | "week" | "archive";
 const tabs = [
   { id: "diary", title: "Diario", icon: Utensils },
-  { id: "week", title: "La mia dieta", icon: CalendarDays },
-  { id: "archive", title: "Ricette", icon: ClipboardList },
-  { id: "profile", title: "Profilo e TDEE", icon: Settings2 },
+  { id: "week", title: "Dieta settimanale", icon: CalendarDays },
+  { id: "archive", title: "Ricette e alimenti", icon: ClipboardList },
 ] as const;
 
 function moveLocalDate(value: string, offset: number): string {
@@ -247,7 +246,10 @@ export function NutritionApp() {
     <PwaRegistration/>
     <header className="nf-header">
       <a className="nf-brand" href="#main-content"><span className="nf-brand-icon"><Utensils size={22}/></span><span>FIT <strong>Diario</strong><small>Quello che mangi. Senza complicazioni.</small></span></a>
-      <CloudAccount state={workspace} onRestore={setWorkspace} onMessage={setNotice} ready={ready && writable} disabled={!writable || busy} onBusyChange={setCloudBusy}/>
+      <div className="nf-header-tools">
+        <button type="button" className="nf-settings-link" aria-pressed={tab === "profile"} onClick={() => { setTab("profile"); setNotice(""); }}><Settings2 size={18}/>Profilo e obiettivi</button>
+        <CloudAccount state={workspace} onRestore={setWorkspace} onMessage={setNotice} ready={ready && writable} disabled={!writable || busy} onBusyChange={setCloudBusy}/>
+      </div>
     </header>
     <nav className="nf-nav" aria-label="Sezioni dell'app">{tabs.map(({ id, title, icon: Icon }) =>
       <button key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setNotice(""); }}><Icon size={18}/>{title}</button>)}</nav>
@@ -256,7 +258,7 @@ export function NutritionApp() {
       {store.error && <div className="nf-alert" role="alert">{store.error}</div>}
       {storageError && <div className="nf-alert" role="alert"><p>{storageError}</p><button onClick={exportWorkspace}>Esporta copia locale</button><button onClick={() => void resetLocal()}>Ripristina dispositivo</button></div>}
       <div className="nf-page-heading">
-        <div><p className="nf-eyebrow">MY NUTRITION · FIT DIARIO</p><h1>{tab === "diary" ? "La mia giornata" : tabs.find((entry) => entry.id === tab)?.title}</h1>
+        <div><p className="nf-eyebrow">MY NUTRITION · FIT DIARIO</p><h1>{tab === "diary" ? "La mia giornata" : tab === "profile" ? "Profilo e TDEE" : tabs.find((entry) => entry.id === tab)?.title}</h1>
         <p className="nf-muted">{tab === "diary" ? "Registra i pasti e controlla il piano in un unico posto." : "I tuoi dati restano salvati nel tuo archivio personale."}</p></div>
         <div className="nf-date-switcher">
           <button type="button" aria-label="Giorno precedente" onClick={() => setDate((current) => moveLocalDate(current, -1))} disabled={!date}><ChevronLeft size={18}/></button>
