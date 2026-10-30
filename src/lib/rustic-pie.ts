@@ -39,8 +39,8 @@ export function detectRusticPie(input: string): { slices: number; size: RusticSi
   const match = /(?:torta\s+(?:rustica|salata)|quiche)/i.exec(input);
   if (!match) return null;
   const before = input.slice(Math.max(0, match.index - 70), match.index);
-  const numeric = /(?:^|\s)(\d{1,2})\s*(?:fett[ea]|porzioni|pezzi)?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
-  const words = /(?:^|\s)(una?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:fett[ea]|porzioni|pezzi)?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
+  const numeric = /(?:^|\s)(\d{1,2})\s*(?:fett[ea]|porzioni|pezzi)?\s*(?:piccol[ae]|medi[ae]|grand[ei])?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
+  const words = /(?:^|\s)(una?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+(?:fett[ea]|porzioni|pezzi)?\s*(?:piccol[ae]|medi[ae]|grand[ei])?\s*(?:di|della|dello|del)?\s*$/i.exec(before);
   const nums: Record<string, number> = { un: 1, una: 1, uno: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10 };
   const slices = numeric ? Number(numeric[1]) : words ? nums[words[1].toLowerCase()] ?? 0 : 0;
   const text = input.slice(match.index, Math.min(input.length, match.index + 100));
