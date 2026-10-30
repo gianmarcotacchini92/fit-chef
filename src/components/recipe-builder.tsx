@@ -78,7 +78,7 @@ export function RecipeBuilder({ savedFoods, onSave }: {
   }
   return <section className="nf-food-row" aria-label="Crea ricetta personale">
     <h3>Crea una ricetta personale</h3>
-    <p className="nf-muted">Per esempio i tuoi pancake: inserisci farina, uova, latte e gli altri ingredienti realmente utilizzati. Pesa il totale dei pancake pronti; le kcal totali non cambiano per l'evaporazione dell'acqua, ma quelle per 100 g sì.</p>
+    <p className="nf-muted">Per esempio i tuoi pancake: inserisci farina, uova, latte e gli altri ingredienti realmente utilizzati. Pesa il totale dei pancake pronti; le kcal totali non cambiano per l&apos;evaporazione dell&apos;acqua, ma quelle per 100 g sì.</p>
     <label className="nf-field">Nome ricetta<input value={name} maxLength={160} placeholder="Pancake fatti in casa" onChange={event => setName(event.target.value)}/></label>
     {chosen.map(line => <div className="nf-food-row" key={line.key}>
       <label className="nf-field">Ingrediente
