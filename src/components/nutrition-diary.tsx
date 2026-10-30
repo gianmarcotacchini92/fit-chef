@@ -11,6 +11,7 @@ import {
 } from "@/lib/nutrition-diary";
 import { fetchOffProduct, isValidBarcode, manualFoodSnapshot, searchCatalog, type OffLookup } from "@/lib/food-search";
 import type { Nutrients, WeekMeal } from "@/lib/types";
+import { parseNaturalMeal, type NaturalItem } from "@/lib/natural-meal";
 
 type Targets = { kcal: number; protein: number; carbs: number; fat: number };
 
@@ -101,6 +102,27 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const [meal, setMeal] = useState<WeekMeal>("lunch");
   const [tab, setTab] = useState<BuilderTab>("catalog");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [naturalText, setNaturalText] = useState("");
+  const [naturalItems, setNaturalItems] = useState<NaturalItem[]>([]);
+  const [naturalUnresolved, setNaturalUnresolved] = useState<string[]>([]);
+  function previewNatural() {
+    const parsed = parseNaturalMeal(naturalText, savedFoods);
+    setNaturalItems(parsed.items);
+    setNaturalUnresolved(parsed.unresolved);
+    setError("");
+    if (!parsed.items.length && !parsed.unresolved.length) setError("Descrivi il pasto e indica i grammi o il numero di pezzi.");
+  }
+  function addNaturalPreview() {
+    if (!naturalItems.length || naturalUnresolved.length) return;
+    const checked = naturalItems.every((item) => Number.isFinite(item.grams) && item.grams > 0 && item.grams <= 5000);
+    if (!checked) { setError("Controlla i grammi di ogni alimento."); return; }
+    setCart((current) => [...current, ...naturalItems.map((item) => ({ key: crypto.randomUUID(), food: item.food, grams: item.grams }))]);
+    setNaturalItems([]);
+    setNaturalUnresolved([]);
+    setNaturalText("");
+    setError("");
+    setNotice("Anteprima aggiunta alla selezione. Premi «Registra nel diario» per confermare il pasto.");
+  }
   const composerRef = useRef<HTMLDetailsElement | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -438,6 +460,47 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
         </div>
       </details>;
     })}
+
+    <section className="nf-card nf-natural-entry" aria-label="Racconta cosa hai mangiato">
+      <div className="nf-section-heading"><div><p className="nf-eyebrow">GRATUITO · SENZA AI ESTERNA</p>
+        <h2>Scrivi cosa hai mangiato</h2></div></div>
+      <p className="nf-muted">Es. «90 g di riso, 150 g di pollo» oppure «3 pezzi di pizza margherita, 2 pezzi di pizza patate, 1 supplì». Le porzioni di pizza in pala e fritti sono stime modificabili; non sono dati della pizzeria.</p>
+      <label className="nf-field">Descrivi il pasto
+        <textarea rows={3} maxLength={2000} className="nf-natural-input" value={naturalText} onChange={(event) => {
+          setNaturalText(event.target.value);
+          setNaturalItems([]); setNaturalUnresolved([]);
+        }} placeholder="Es. 2 pezzi di pizza margherita, 1 supplì e 1 crocchetta"/>
+      </label>
+      <label className="nf-field">Pasto di destinazione
+        <select value={meal} onChange={(event) => setMeal(z.enum(["breakfast","lunch","snack","dinner"]).parse(event.target.value))}>
+          {MEAL_ORDER.map((id) => <option key={id} value={id}>{MEAL_LABELS[id]}</option>)}
+        </select>
+      </label>
+      <button type="button" className="nf-button" onClick={previewNatural}><Search size={16}/>Calcola anteprima</button>
+      {naturalUnresolved.length > 0 && <div className="nf-alert" role="alert">
+        <strong>Da chiarire prima di registrare:</strong>
+        <ul>{naturalUnresolved.map((problem, i) => <li key={i}>{problem}</li>)}</ul>
+        <p>Puoi correggere il testo e ricalcolare oppure aggiungere questi alimenti dal catalogo.</p>
+      </div>}
+      {naturalItems.length > 0 && <div className="nf-natural-preview">
+        <h3>Anteprima del pasto</h3>
+        {naturalItems.map((item) => <div key={item.id} className="nf-food-row">
+          <strong>{item.food.name}</strong>
+          <label className="nf-field">Grammi
+            <input type="number" min="0.1" max="5000" step="0.1" value={item.grams}
+              onChange={(event) => setNaturalItems((current) => current.map((entry) => entry.id === item.id
+                ? { ...entry, grams: Number(event.target.value) } : entry))}/>
+          </label>
+          <p>{Math.round(item.food.per100g.kcal * item.grams / 100)} kcal · P {(item.food.per100g.protein * item.grams / 100).toFixed(1)} g · C {(item.food.per100g.carbs * item.grams / 100).toFixed(1)} g · G {(item.food.per100g.fat * item.grams / 100).toFixed(1)} g</p>
+          {item.reason && <p className="nf-muted">{item.reason}</p>}
+          {item.estimated && <p className="nf-muted">Valore indicativo: verifica la porzione reale.</p>}
+        </div>)}
+        <p><strong>Totale: {Math.round(entryTotals(naturalItems).kcal)} kcal</strong> · P {entryTotals(naturalItems).protein.toFixed(1)} g · C {entryTotals(naturalItems).carbs.toFixed(1)} g · G {entryTotals(naturalItems).fat.toFixed(1)} g</p>
+        <button type="button" className="nf-button" disabled={naturalUnresolved.length > 0 || naturalItems.some((item) => !Number.isFinite(item.grams) || item.grams <= 0 || item.grams > 5000)} onClick={addNaturalPreview}>
+          <Plus size={16}/>Aggiungi alla selezione
+        </button>
+      </div>}
+    </section>
 
     <details ref={composerRef} className="nf-card nf-composer-card">
       <summary className="nf-composer-summary"><span><strong>Aggiungi alimenti</strong><small>Ricerca, scanner, alimenti personali e pasti salvati</small></span><ChevronDown size={19} aria-hidden="true"/></summary>
