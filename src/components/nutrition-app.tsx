@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useState, type SetStateAction } from "react";
 import { signOut } from "firebase/auth";
 import { z } from "zod";
-import { CalendarDays, ClipboardList, Download, Settings2, Utensils } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Settings2, Utensils } from "lucide-react";
 import { DEFAULT_MEAL_INPUT } from "@/lib/defaults";
 import { getCloudClient } from "@/lib/cloud";
 import { clearCloudBinding } from "@/lib/cloud-storage";
@@ -19,6 +19,7 @@ import { NutritionProfile } from "./nutrition-profile";
 import { NutritionDiary } from "./nutrition-diary";
 import { NutritionWeek } from "./nutrition-week";
 import { RecipeBuilder } from "./recipe-builder";
+import { WeeklyPlanPreview } from "./weekly-plan-preview";
 
 const STORAGE_KEY = "fit-chef.workspace.v1";
 const MIGRATION_KEY = "fit-chef.local-plan-migration.v1";
@@ -26,10 +27,18 @@ const STATIC_SITE = process.env.NEXT_PUBLIC_FIT_STATIC === "true";
 type Tab = "diary" | "profile" | "week" | "archive";
 const tabs = [
   { id: "diary", title: "Diario", icon: Utensils },
-  { id: "profile", title: "Profilo e TDEE", icon: Settings2 },
   { id: "week", title: "La mia dieta", icon: CalendarDays },
   { id: "archive", title: "Ricette", icon: ClipboardList },
+  { id: "profile", title: "Profilo e TDEE", icon: Settings2 },
 ] as const;
+
+function moveLocalDate(value: string, offset: number): string {
+  const parts = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(value);
+  if (!parts) return value;
+  const day = new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]) + offset, 12));
+  return day.toISOString().slice(0, 10);
+}
+
 
 function initialWorkspace(): LocalState {
   return {
@@ -246,10 +255,16 @@ export function NutritionApp() {
       {notice && <div className="nf-alert nf-notice" role="status"><p>{notice}</p><button aria-label="Chiudi messaggio" onClick={() => setNotice("")}>×</button></div>}
       {store.error && <div className="nf-alert" role="alert">{store.error}</div>}
       {storageError && <div className="nf-alert" role="alert"><p>{storageError}</p><button onClick={exportWorkspace}>Esporta copia locale</button><button onClick={() => void resetLocal()}>Ripristina dispositivo</button></div>}
-      <div className="nf-page-heading"><div><p className="nf-eyebrow">UN PASSO ALLA VOLTA</p><h1>{tab === "diary" ? "Il tuo diario alimentare" : tabs.find((entry) => entry.id === tab)?.title}</h1></div>
-        <label className="nf-date nf-field">Data del diario<input type="date" required value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }}/></label>
+      <div className="nf-page-heading">
+        <div><p className="nf-eyebrow">MY NUTRITION · FIT DIARIO</p><h1>{tab === "diary" ? "La mia giornata" : tabs.find((entry) => entry.id === tab)?.title}</h1>
+        <p className="nf-muted">{tab === "diary" ? "Registra i pasti e controlla il piano in un unico posto." : "I tuoi dati restano salvati nel tuo archivio personale."}</p></div>
+        <div className="nf-date-switcher">
+          <button type="button" aria-label="Giorno precedente" onClick={() => setDate((current) => moveLocalDate(current, -1))} disabled={!date}><ChevronLeft size={18}/></button>
+          <label className="nf-date nf-field">Data del diario<input type="date" required value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }}/></label>
+          <button type="button" aria-label="Giorno successivo" onClick={() => setDate((current) => moveLocalDate(current, 1))} disabled={!date}><ChevronRight size={18}/></button>
+        </div>
       </div>
-      <div className="nf-quick-actions" aria-label="Azioni rapide">
+      {tab === "diary" && <div className="nf-quick-actions" aria-label="Azioni rapide">
         <button type="button" className="nf-quick-action" onClick={() => { setTab("diary"); setNotice("Apri Aggiungi alimenti per cercare o scansionare un prodotto."); }}>
           <Utensils size={18}/> Registra un alimento
         </button>
@@ -259,9 +274,13 @@ export function NutritionApp() {
         <button type="button" className="nf-quick-action" onClick={() => { setTab("week"); setNotice(""); }}>
           <CalendarDays size={18}/> Vedi la dieta
         </button>
-      </div>
+      </div>}
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
+          <WeeklyPlanPreview date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} onOpen={(day) => {
+            setWorkspace((current) => ({ ...current, weeklyDiet: { ...(current.weeklyDiet ?? initialWeeklyDietState()), day } }));
+            setTab("week");
+          }}/>
           {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
           <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} savedFoods={nutrition.savedFoods ?? []} onSaveFood={saveFood} onDeleteFood={deleteFood} date={date} onDate={setDate}
             targets={targetsOnDate(nutrition, date)} onAdd={addEntries} onSaveMeal={saveMeal}
