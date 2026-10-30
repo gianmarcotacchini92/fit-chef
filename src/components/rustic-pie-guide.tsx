@@ -74,7 +74,7 @@ export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave }
           <p>Ipotesi centrale con {estimate.centralGrams} g e {pastryShare}% di sfoglia: circa {Math.round(estimate.food.per100g.kcal*estimate.centralGrams/100)} kcal; P {(estimate.food.per100g.protein*estimate.centralGrams/100).toFixed(1)} g · C {(estimate.food.per100g.carbs*estimate.centralGrams/100).toFixed(1)} g · G {(estimate.food.per100g.fat*estimate.centralGrams/100).toFixed(1)} g.</p>
           <p>Fonti ingredienti: USDA ricotta intera NDB 01036, sfoglia cotta FDC 172738. Quantità e percentuali NON provengono da USDA.</p>
           <div className="nf-smart-meal-actions">
-            <button type="button" className="nf-button" onClick={()=>onPreview(estimate.food,estimate.centralGrams,`Scenario ${estimate.lowKcal}–${estimate.highKcal} kcal; peso ${estimate.gramsLow}–${estimate.gramsHigh} g`)}>Usa questa stima nell'anteprima</button>
+            <button type="button" className="nf-button" onClick={()=>onPreview(estimate.food,estimate.centralGrams,`Scenario ${estimate.lowKcal}–${estimate.highKcal} kcal; peso ${estimate.gramsLow}–${estimate.gramsHigh} g`)}>Usa questa stima nell&apos;anteprima</button>
             <button type="button" className="nf-text-button" disabled={saved} onClick={save}>{saved?"Piatto salvato":"Salva come mio piatto"}</button>
           </div>
         </>}
