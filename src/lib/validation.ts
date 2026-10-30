@@ -216,6 +216,7 @@ export const weeklyDietStateSchema = z.strictObject({
     choices: draftValues(30),
     grams: draftValues(900),
     overrides: draftValues(900).optional(),
+    customFoods: draftValues(30).optional(),
     confirmed: z.boolean(),
   })).refine((drafts) => Object.keys(drafts).length <= 28, "Troppi pasti nella settimana."),
   appliedKey: weeklyKey.optional(),
