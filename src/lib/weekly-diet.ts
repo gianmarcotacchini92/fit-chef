@@ -1,4 +1,5 @@
 import { getIngredient } from "./catalog";
+import type { FoodSnapshot } from "./nutrition-diary";
 import { createMealBase, ingredientRestriction } from "./meal";
 import { weeklyPlanSchema } from "./validation";
 import type { PantryItem, RecipeInput, WeekDay, WeekMeal, WeeklyDietState, WeeklyMeal, WeeklyMealDraft, WeeklyOption, WeeklyPlan, WeeklySlot } from "./types";
@@ -45,6 +46,8 @@ export function migrateWeeklyPlan(state: WeeklyDietState, plan: WeeklyPlan): Wee
 export const emptyWeeklyDraft = (): WeeklyMealDraft => ({ choices: {}, grams: {}, confirmed: false });
 export const weeklyMealKey = (day: WeekDay, meal: WeekMeal) => `${day}-${meal}`;
 export function selectedWeeklyOption(slot: WeeklySlot, draft: WeeklyMealDraft): WeeklyOption | undefined {
+  const customId = draft.customFoods?.[slot.id];
+  if (customId) return { ingredientId: customId, grams: null, label: slot.label };
   return slot.options.length === 1 ? slot.options[0] : slot.options.find((option) => option.ingredientId === draft.choices[slot.id]);
 }
 export const weeklyQuantityKey = (slot: WeeklySlot, option: WeeklyOption) => `${slot.id}-${option.ingredientId}`;
@@ -53,11 +56,11 @@ export function weeklySuggestedMinutes(plan: WeeklyMeal, servings: number): numb
 }
 
 /** No bundled fallback: callers must supply the current user's plan. */
-export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMealDraft, weeklyPlan?: WeeklyPlan): {
-  items: { ingredientId: string; grams: number }[]; errors: string[];
+export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMealDraft, weeklyPlan?: WeeklyPlan, personalFoods: readonly FoodSnapshot[] = []): {
+  items: { ingredientId: string; grams: number; food?: FoodSnapshot }[]; errors: string[];
 } {
   const plan = weeklyPlan?.[day][meal];
-  const items: { ingredientId: string; grams: number }[] = [];
+  const items: { ingredientId: string; grams: number; food?: FoodSnapshot }[] = [];
   const errors: string[] = [];
   if (!plan) return { items, errors: ["Importa il tuo piano personale prima di scegliere un pasto settimanale."] };
   if (plan.freeChoice) return { items, errors: ["Questo pasto e a piacere: scegli e quantifica gli alimenti nel compositore manuale."] };
@@ -68,7 +71,8 @@ export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMea
       continue;
     }
     const ingredient = getIngredient(option.ingredientId);
-    if (!ingredient) {
+    const personal = personalFoods.find((food) => food.id === option.ingredientId);
+    if (!ingredient && !personal) {
       errors.push(`${slot.label}: questa voce non e ancora disponibile nel catalogo.`);
       continue;
     }
@@ -82,7 +86,7 @@ export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMea
       errors.push(`${slot.label}: alimento gia presente in un'altra voce. Scegli un'alternativa diversa o correggi il piano indicando una quantita complessiva.`);
       continue;
     }
-    items.push({ ingredientId: option.ingredientId, grams });
+    items.push({ ingredientId: option.ingredientId, grams, ...(personal ? { food: personal } : {}) });
   }
   if (!draft.confirmed) errors.push("Conferma che le voci del catalogo corrispondano ai prodotti, alle varianti e agli stati di peso della tua dieta.");
   return { items, errors };
