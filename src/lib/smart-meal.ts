@@ -41,7 +41,7 @@ export type SmartMealPreview = { items: SmartMealItem[]; warnings: string[] };
 
 function quantity(prefix: string): number | null {
   const text = NORMALIZE(prefix);
-  const m = /(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:pezzi?|tranci?|fette?|suppli|crocchette?)?\s*$/.exec(text);
+  const m = /(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:pezzi?|tranci?|fette?|suppli|crocchette?)?\b/.exec(text);
   if (m) return Number(m[1].replace(",", "."));
   const words = text.split(/\s+/);
   for (let i = words.length - 1; i >= 0 && i >= words.length - 3; i--) {
