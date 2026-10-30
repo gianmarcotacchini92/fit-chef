@@ -1,4 +1,5 @@
 import { getIngredient } from "./catalog";
+import type { FoodSnapshot } from "./nutrition-diary";
 import { minimumDailyProtein } from "./nutrition-profile";
 import { emptyWeeklyDraft, selectedWeeklyOption, weeklyMealKey, weeklyQuantityKey, WEEK_MEALS } from "./weekly-diet";
 import type { WeekDay, WeekMeal, WeeklyDietState, WeeklySlot, WeeklyOption } from "./types";
@@ -19,7 +20,7 @@ function numericGrams(slot: WeeklySlot, option: WeeklyOption, grams: Record<stri
   return raw?.trim() ? Number(raw.replace(",", ".")) : NaN;
 }
 
-export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: ReadonlySet<string> = new Set()): DailyPlan {
+export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: ReadonlySet<string> = new Set(), personalFoods: readonly FoodSnapshot[] = []): DailyPlan {
   const items: PlannedItem[] = [];
   const errors: string[] = [];
   if (!state.plan) return { items, errors: ["Importa prima un piano privato."], kcal: 0, protein: 0 };
@@ -34,7 +35,8 @@ export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: Rea
       const option = selectedWeeklyOption(slot, draft);
       if (!option) { errors.push(`${slot.label}: seleziona un'alternativa.`); continue; }
       const food = getIngredient(option.ingredientId);
-      if (!food) { errors.push(`${slot.label}: alimento non trovato nel catalogo.`); continue; }
+      const personal = personalFoods.find((item) => item.id === option.ingredientId);
+      if (!food && !personal) { errors.push(`${slot.label}: alimento non trovato nel catalogo.`); continue; }
       const grams = numericGrams(slot, option, draft.grams, draft.overrides);
       if (!Number.isFinite(grams) || grams <= 0 || grams > 5000) {
         errors.push(`${slot.label}: inserisci grammi validi.`); continue;
@@ -44,7 +46,8 @@ export function plannedDay(state: WeeklyDietState, day: WeekDay, lockedKeys: Rea
       items.push({
         meal, slotId: slot.id, label: slot.label, ingredientId: option.ingredientId,
         quantityKey, grams, originalGrams: grams, locked: lockedKeys.has(lockKey),
-        kcalPerGram: food.nutrients.kcal / 100, proteinPerGram: food.nutrients.protein / 100,
+        kcalPerGram: (food?.nutrients.kcal ?? personal!.per100g.kcal) / 100,
+        proteinPerGram: (food?.nutrients.protein ?? personal!.per100g.protein) / 100,
       });
     }
   }
@@ -124,7 +127,7 @@ export function applyDailyAdjustment(state: WeeklyDietState, day: WeekDay, propo
     drafts[key] = {
       ...previous,
       confirmed: false,
-      ...(state.plan?.[day][item.meal].slots.find((slot) => slot.id === item.slotId)?.options.find((opt) => opt.ingredientId === item.ingredientId)?.grams === null
+      ...(state.drafts[key]?.customFoods?.[item.slotId] === item.ingredientId || state.plan?.[day][item.meal].slots.find((slot) => slot.id === item.slotId)?.options.find((opt) => opt.ingredientId === item.ingredientId)?.grams === null
         ? { grams: { ...previous.grams, [item.quantityKey]: String(Math.round(item.grams * 10) / 10) } }
         : { overrides: { ...previous.overrides, [item.quantityKey]: String(Math.round(item.grams * 10) / 10) } }),
     };
