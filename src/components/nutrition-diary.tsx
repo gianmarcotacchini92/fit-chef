@@ -123,6 +123,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const [manualCarbs, setManualCarbs] = useState("");
   const [manualFat, setManualFat] = useState("");
   const [manualFiber, setManualFiber] = useState("");
+  const [manualBarcode, setManualBarcode] = useState("");
 
   // Barcode lookup
   const [barcode, setBarcode] = useState("");
@@ -217,14 +218,14 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
       carbs: Number(manualCarbs.replace(",", ".")), fat: Number(manualFat.replace(",", ".")),
       fiber: Number(manualFiber.replace(",", ".")),
     };
-    const snapshot = manualFoodSnapshot({ name: manualName, state: manualState, per100g });
+    const snapshot = manualFoodSnapshot({ name: manualName, state: manualState, per100g, ...(manualBarcode ? { barcode: manualBarcode } : {}) });
     return editingFoodId ? { ...snapshot, id: editingFoodId } : snapshot;
   }
 
   function clearManual() {
     setEditingFoodId(null);
     setManualName(""); setManualState(""); setManualKcal(""); setManualProtein("");
-    setManualCarbs(""); setManualFat(""); setManualFiber("");
+    setManualCarbs(""); setManualFat(""); setManualFiber(""); setManualBarcode("");
   }
 
   function saveManualFood() {
@@ -243,7 +244,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     setManualName(food.name); setManualState(food.state);
     setManualKcal(String(food.per100g.kcal)); setManualProtein(String(food.per100g.protein));
     setManualCarbs(String(food.per100g.carbs)); setManualFat(String(food.per100g.fat));
-    setManualFiber(String(food.per100g.fiber));
+    setManualFiber(String(food.per100g.fiber)); setManualBarcode(food.barcode ?? "");
     setTab("manual");
     setError("");
   }
@@ -252,7 +253,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     if (offResult?.status !== "error" || !offResult.partial) return;
     const product = offResult.partial;
     clearManual();
-    setManualName(product.name);
+    setManualName(product.name); setManualBarcode(product.barcode);
     setManualState(product.brands ? `confezionato, marca ${product.brands}` : "confezionato");
     setManualKcal(product.per100g.kcal === null ? "" : String(product.per100g.kcal));
     setManualProtein(product.per100g.protein === null ? "" : String(product.per100g.protein));
@@ -467,6 +468,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
 
       {tab === "manual" && <div>
         <p className="nf-muted">Per un alimento confezionato o una ricetta tua, con valori per 100 g dall&apos;etichetta.</p>
+        {manualBarcode && <p className="nf-muted">Codice a barre collegato: <strong>{manualBarcode}</strong></p>}
         <div className="nf-grid">
           <label className="nf-field">Nome<input value={manualName} onChange={(event) => setManualName(event.target.value)} placeholder="es. Barretta ai cereali"/></label>
           <label className="nf-field">Stato<input value={manualState} onChange={(event) => setManualState(event.target.value)} placeholder="es. confezionata, pronta"/></label>
