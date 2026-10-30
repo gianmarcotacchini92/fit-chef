@@ -200,6 +200,20 @@ export async function fetchOffProduct(barcode: string, options: OffOptions = {})
   return request;
 }
 
+async function legacyFallback(code: string, options: OffOptions, signal: AbortSignal, primary: OffLookup): Promise<OffLookup> {
+  const now = options.now ?? Date.now;
+  offRequestTimes = offRequestTimes.filter(time => now() - time < OFF_WINDOW_MS);
+  if (offRequestTimes.length >= OFF_MAX_PER_WINDOW) return primary;
+  offRequestTimes.push(now());
+  try {
+    const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(code) + ".json?fields=code,product_name,brands,nutriments&app_name=" + OFF_APP_NAME;
+    const response = await (options.fetchImpl ?? fetch)(url, { signal });
+    if (!response.ok) return primary;
+    const legacy = parseLegacy(await response.json() as LegacyBody, code);
+    return legacy.status === "ok" ? legacy : primary;
+  } catch { return primary; }
+}
+
 async function requestOff(code: string, options: OffOptions): Promise<OffLookup> {
   const doFetch = options.fetchImpl ?? fetch;
   const timeoutController = new AbortController();
@@ -210,10 +224,12 @@ async function requestOff(code: string, options: OffOptions): Promise<OffLookup>
     const response = await doFetch(url, { signal });
     let body: OffBody | null = null;
     try { body = await response.json() as OffBody; } catch { body = null; }
-    if (response.status === 404 && body?.result?.id === "product_not_found") return parseOffBody(body, code);
+    if (response.status === 404 && body?.result?.id === "product_not_found") return legacyFallback(code, options, signal, parseOffBody(body, code));
     if (!response.ok) return { status: "error", message: `Open Food Facts non raggiungibile (codice ${response.status}).` };
     if (!body) return { status: "error", message: "Risposta di Open Food Facts non leggibile." };
-    return parseOffBody(body, code);
+    const primary = parseOffBody(body, code);
+    if (primary.status === "ok" || (primary.status === "error" && !/nutrizional|mancanti|100 g/.test(primary.message))) return primary;
+    return legacyFallback(code, options, signal, primary);
   } catch {
     return { status: "error", message: "Richiesta a Open Food Facts non riuscita, scaduta o annullata: controlla la connessione e riprova." };
   } finally {
