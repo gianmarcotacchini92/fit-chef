@@ -226,13 +226,14 @@ async function requestOff(code: string, options: OffOptions): Promise<OffLookup>
     const response = await doFetch(url, { signal });
     let body: OffBody | null = null;
     try { body = await response.json() as OffBody; } catch { body = null; }
-    const primary = response.ok && body ? parseOffBody(body, code)
+    const primary = (response.ok || response.status === 404) && body ? parseOffBody(body, code)
       : { status: "error" as const, message: `Risposta Open Food Facts v3 non disponibile (HTTP ${response.status}).` };
     if (primary.status === "ok") return primary;
     // Retry against the documented v2 read endpoint when the newer API reports a missing product
     // or an unsupported nutrition structure. Never estimate absent values.
     const fallback = await requestOffV2(code, doFetch, signal);
     if (fallback.status === "ok") return fallback;
+    if (primary.status === "not-found" && fallback.status === "error" && fallback.message.startsWith("Prodotto trovato")) return fallback;
     return primary; // Preserve the actionable v3 error if the fallback also cannot provide a valid product.
   } catch {
     return { status: "error", message: "Richiesta a Open Food Facts non riuscita, scaduta o annullata: controlla la connessione e riprova." };
