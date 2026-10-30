@@ -186,3 +186,21 @@ test("barcode lookup distinguishes an existing incomplete product from a v3 not-
   assert.equal(result.status, "error");
   if (result.status === "error") assert.match(result.message, /Prodotto trovato/);
 });
+
+test("partial v2 barcode preserves known fields and does not invent missing ones", async () => {
+  const result = await fetchOffProduct("8017596141880", { fetchImpl: async (input) =>
+    String(input).includes("/api/v3.6/")
+      ? jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404)
+      : jsonResponse({ status: 1, product: { product_name: "Prodotto test", brands: "Marca test",
+          nutriments: { "energy-kcal_100g": 210, "proteins_100g": 7.5 } } }),
+  });
+  assert.equal(result.status, "error");
+  if (result.status !== "error") return;
+  assert.equal(result.partial?.barcode, "8017596141880");
+  assert.equal(result.partial?.name, "Prodotto test");
+  assert.equal(result.partial?.per100g.kcal, 210);
+  assert.equal(result.partial?.per100g.protein, 7.5);
+  assert.equal(result.partial?.per100g.carbs, null);
+  assert.equal(result.partial?.per100g.fat, null);
+  assert.equal(result.partial?.per100g.fiber, null);
+});
