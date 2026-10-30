@@ -70,6 +70,7 @@ export function NutritionApp() {
   const [storageError, setStorageError] = useState("");
   const [notice, setNotice] = useState("");
   const [tab, setTab] = useState<Tab>("diary");
+  const [recipeIntro, setRecipeIntro] = useState(false);
   const [date, setDate] = useState("");
   const [archiveMeal, setArchiveMeal] = useState<WeekMeal>("lunch");
   const [busy, setBusy] = useState(false);
@@ -248,6 +249,17 @@ export function NutritionApp() {
       <div className="nf-page-heading"><div><p className="nf-eyebrow">UN PASSO ALLA VOLTA</p><h1>{tab === "diary" ? "Il tuo diario alimentare" : tabs.find((entry) => entry.id === tab)?.title}</h1></div>
         <label className="nf-date nf-field">Data del diario<input type="date" required value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }}/></label>
       </div>
+      <div className="nf-quick-actions" aria-label="Azioni rapide">
+        <button type="button" className="nf-quick-action" onClick={() => { setTab("diary"); setNotice("Apri Aggiungi alimenti per cercare o scansionare un prodotto."); }}>
+          <Utensils size={18}/> Registra un alimento
+        </button>
+        <button type="button" className="nf-quick-action" onClick={() => { setRecipeIntro(true); setTab("archive"); setNotice(""); }}>
+          <ClipboardList size={18}/> Crea una ricetta
+        </button>
+        <button type="button" className="nf-quick-action" onClick={() => { setTab("week"); setNotice(""); }}>
+          <CalendarDays size={18}/> Vedi la dieta
+        </button>
+      </div>
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
           {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
@@ -277,7 +289,7 @@ export function NutritionApp() {
           </section>
         </>}
         {tab === "week" && <NutritionWeek date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} targets={targetsOnDate(nutrition, date)} weightKg={nutrition.profile?.weightKg} onChange={(state) => setWorkspace((current) => ({ ...current, weeklyDiet: state }))} savedFoods={nutrition.savedFoods ?? []} onAdd={addEntries}/>}
-        {tab === "archive" && <><RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
+        {tab === "archive" && <>{recipeIntro && <div className="nf-alert" role="status"><strong>Qui crei una ricetta da zero.</strong> Aggiungi gli ingredienti con i grammi, indica il peso finale e premi «Salva ricetta negli alimenti personali». Un pasto salvato è invece solo una combinazione da registrare nel diario. <button type="button" onClick={() => setRecipeIntro(false)}>Ho capito</button></div>}<RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
           <label className="nf-field">Pasto per le ricette<select value={archiveMeal} onChange={(event) => setArchiveMeal(z.enum(["breakfast", "lunch", "snack", "dinner"]).parse(event.target.value))}>
             <option value="breakfast">Colazione</option><option value="lunch">Pranzo</option><option value="snack">Spuntino</option><option value="dinner">Cena</option>
           </select></label>

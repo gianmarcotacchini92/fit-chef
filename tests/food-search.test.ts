@@ -176,3 +176,13 @@ test("barcode lookup does not invent missing nutrient values on fallback", async
   });
   assert.equal(result.status, "error");
 });
+
+test("barcode lookup distinguishes an existing incomplete product from a v3 not-found response", async () => {
+  const result = await fetchOffProduct("8017596141880", { fetchImpl: async (input) =>
+    String(input).includes("/api/v3.6/")
+      ? jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404)
+      : jsonResponse({ status: 1, product: { product_name: "Prodotto reale ma senza valori completi", nutriments: { "energy-kcal_100g": 200 } } }),
+  });
+  assert.equal(result.status, "error");
+  if (result.status === "error") assert.match(result.message, /Prodotto trovato/);
+});
