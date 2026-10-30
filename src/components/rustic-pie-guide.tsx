@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { estimateRusticPie, RUSTIC_PORTION_SCENARIOS, type RusticBase, type RusticSize } from "@/lib/rustic-pie";
 import type { FoodSnapshot } from "@/lib/nutrition-diary";
 
-export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave }: {
+export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave, onInvalidate }: {
   initialSlices: number;
   initialSize: RusticSize;
   onPreview: (food: FoodSnapshot, grams: number, note: string) => void;
   onSave: (food: FoodSnapshot) => void;
+  onInvalidate: () => void;
 }) {
   const [slices, setSlices] = useState(initialSlices);
   const [size, setSize] = useState<RusticSize>(initialSize);
@@ -24,6 +25,8 @@ export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave }
     knownGrams: grams, pastrySharePercent: pastryShare,
   }), [slices, size, base, onlyRicotta, grams, pastryShare]);
   const [minPiece, maxPiece] = RUSTIC_PORTION_SCENARIOS[size];
+
+  function invalidate() { setSaved(false); setMessage(""); onInvalidate(); }
 
   function save() {
     if (!estimate) return;
@@ -42,28 +45,28 @@ export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave }
     <p className="nf-muted">Non conosco la ricetta né il peso effettivo. I valori nutrizionali di ricotta e sfoglia derivano da USDA; pesi delle fette e proporzioni sono solo scenari ipotetici, non misure della tua torta.</p>
     <div className="nf-grid">
       <label className="nf-field">Numero di fette
-        <input type="number" min="1" max="30" step="1" value={slices} onChange={e => setSlices(Number(e.target.value))}/>
+        <input type="number" min="1" max="30" step="1" value={slices} onChange={e => {setSlices(Number(e.target.value));invalidate();}}/>
       </label>
       <label className="nf-field">Dimensione delle fette
-        <select value={size} onChange={e => setSize(e.target.value as RusticSize)}>
+        <select value={size} onChange={e => {setSize(e.target.value as RusticSize);invalidate();}}>
           <option value="small">Piccole</option><option value="medium">Medie</option><option value="large">Grandi</option>
         </select>
       </label>
       <label className="nf-field">Quale base?
-        <select value={base} onChange={e => {setBase(e.target.value as RusticBase);setSaved(false);}}>
+        <select value={base} onChange={e => {setBase(e.target.value as RusticBase);invalidate();}}>
           <option value="unknown">Non lo so</option><option value="puff">Pasta sfoglia</option>
           <option value="shortcrust">Pasta brisée</option><option value="other">Altro impasto</option>
         </select>
       </label>
       <label className="nf-field">Peso totale se conosciuto, g (facoltativo)
-        <input type="number" min="1" max="5000" step="1" value={knownWeight} placeholder="Non misurato" onChange={e=>setKnownWeight(e.target.value)}/>
+        <input type="number" min="1" max="5000" step="1" value={knownWeight} placeholder="Non misurato" onChange={e=>{setKnownWeight(e.target.value);invalidate();}}/>
       </label>
     </div>
-    <label className="nf-check"><input type="checkbox" checked={onlyRicotta} onChange={e=>{setOnlyRicotta(e.target.checked);setSaved(false);}}/>
+    <label className="nf-check"><input type="checkbox" checked={onlyRicotta} onChange={e=>{setOnlyRicotta(e.target.checked);invalidate();}}/>
       Confermo: nella stima considero solo ricotta e sfoglia, senza altri ingredienti o condimenti.
     </label>
     {base === "puff" && onlyRicotta && <label className="nf-field">Ipotesi: percentuale di sfoglia sul peso finito — {pastryShare}%
-      <input type="range" min="25" max="55" step="5" value={pastryShare} onChange={e=>{setPastryShare(Number(e.target.value));setSaved(false);}}/>
+      <input type="range" min="25" max="55" step="5" value={pastryShare} onChange={e=>{setPastryShare(Number(e.target.value));invalidate();}}/>
     </label>}
     <div className="nf-alert">
       <strong>Scenario di peso</strong>
