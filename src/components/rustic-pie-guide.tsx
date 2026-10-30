@@ -10,7 +10,7 @@ export function RusticPieGuide({ initialSlices, initialSize, onPreview, onSave }
   onPreview: (food: FoodSnapshot, grams: number, note: string) => void;
   onSave: (food: FoodSnapshot) => void;
 }) {
-  const [slices, setSlices] = useState(initialSlices || 2);
+  const [slices, setSlices] = useState(initialSlices);
   const [size, setSize] = useState<RusticSize>(initialSize);
   const [base, setBase] = useState<RusticBase>("unknown");
   const [onlyRicotta, setOnlyRicotta] = useState(false);
