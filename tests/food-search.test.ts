@@ -153,3 +153,20 @@ test("fetchOffProduct throttles distinct barcodes below the public rate limit an
   clock += 61_000;
   assert.equal((await fetchOffProduct("8999999999999", { fetchImpl, now: () => clock })).status, "ok");
 });
+
+test("v3 product missing nutrition falls back to compatible v2 nutrients per 100g", async () => {
+  const urls: string[] = [];
+  const result = await fetchOffProduct("3017624010701", { fetchImpl: async input => {
+    urls.push(String(input));
+    if (String(input).includes("/v3.6/")) return jsonResponse({
+      status: "success", result: { id: "product_found" },
+      product: { product_name: "Prodotto", nutrition: {} },
+    });
+    return jsonResponse({ status: 1, product: { product_name: "Prodotto", brands: "Marca",
+      nutriments: { "energy-kcal_100g": 530, proteins_100g: 6, carbohydrates_100g: 56,
+        fat_100g: 30, fiber_100g: 3 } } });
+  }});
+  assert.equal(result.status, "ok");
+  assert.equal(urls.length, 2);
+  if (result.status === "ok") assert.equal(result.product.per100g.kcal, 530);
+});
