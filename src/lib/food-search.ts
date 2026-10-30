@@ -233,7 +233,7 @@ async function requestOff(code: string, options: OffOptions): Promise<OffLookup>
     // or an unsupported nutrition structure. Never estimate absent values.
     const fallback = await requestOffV2(code, doFetch, signal);
     if (fallback.status === "ok") return fallback;
-    return fallback.status === "not-found" && primary.status === "error" ? primary : fallback;
+    return primary; // Preserve the actionable v3 error if the fallback also cannot provide a valid product.
   } catch {
     return { status: "error", message: "Richiesta a Open Food Facts non riuscita, scaduta o annullata: controlla la connessione e riprova." };
   } finally {
