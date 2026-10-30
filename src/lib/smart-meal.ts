@@ -15,6 +15,13 @@ const PIZZERIA = [
   { key: "crocchetta", pattern: /crocchett[ae]/i, name: "Crocchetta di patate", values: [235, 4, 30, 11, 3], pieceGrams: 50 },
 ] as const;
 
+const HOME_DISHES = [
+  { key: "polpette", pattern: /polpett[ae]/i, name: "Polpette in bianco (stima)", values: [210, 16, 8, 13, 1], pieceGrams: 45, unit: "polpetta" },
+  { key: "arrosto-maiale", pattern: /arrosto di maiale|maiale arrosto|lonza arrosto/i, name: "Arrosto di maiale (stima)", values: [195, 27, 1, 9, 0], pieceGrams: 65, unit: "fetta" },
+  { key: "arrosto-vitello", pattern: /arrosto di vitello|vitello arrosto/i, name: "Arrosto di vitello (stima)", values: [175, 27, 1, 7, 0], pieceGrams: 65, unit: "fetta" },
+  { key: "polpettone", pattern: /polpettone/i, name: "Polpettone (stima)", values: [215, 17, 7, 13, 1], pieceGrams: 85, unit: "fetta" },
+  { key: "lasagna", pattern: /lasagn[ae]/i, name: "Lasagna al forno (stima)", values: [170, 9, 16, 8, 1], pieceGrams: 180, unit: "porzione" },
+] as const;
 const WORD_NUMBERS: Record<string, number> = {
   un: 1, uno: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6,
   sette: 7, otto: 8, nove: 9, dieci: 10,
