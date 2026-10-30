@@ -108,3 +108,51 @@
   .nf-quick-actions { gap: 6px; }
   .nf-quick-action { flex-direction: column; gap: 6px; padding: 9px 5px; min-height: 72px; font-size: 11px; text-align: center; }
 }
+
+/* Nutrition-first visual hierarchy: clear daily totals, compact meals and an unobtrusive top navigation. */
+.nf-app { background: #f7f8fb; color: #192b23; }
+.nf-header { max-width: 1120px; padding: 18px 24px 12px; }
+.nf-brand-icon { background: #17684c; }
+.nf-header-tools { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nf-settings-link { border: 1px solid #d9e2df; background: white; color: #315247; border-radius: 99px; padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.nf-settings-link[aria-pressed="true"] { background: #e3f3ea; border-color: #9ebaaa; }
+.nf-nav { max-width: 1070px; padding: 5px; gap: 4px; border-radius: 16px; background: #e9eeec; }
+.nf-nav button { border-radius: 12px; font-size: 14px; min-height: 48px; color: #4c645b; }
+.nf-nav button[aria-pressed="true"] { color: #17684c; }
+.nf-shell { max-width: 1120px; padding-top: 24px; }
+.nf-card { border-color: #e4eae7; box-shadow: 0 4px 18px #192b2308; }
+.nf-diary > .nf-card:first-child { background: linear-gradient(145deg, #fff, #f6fbf8); border-color: #cee3d5; }
+.nf-diary > .nf-card:first-child .nf-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child { grid-column: 1 / -1; background: #e8f5ed; border-color: #d4e7dc; padding: 18px 22px; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child strong { color: #17684c; }
+.nf-diary > .nf-card:first-child .nf-grid > :first-child p { font-size: 19px; font-weight: 700; }
+.nf-diary > .nf-card:first-child .nf-grid .nf-food-row { background: #fff; }
+.nf-diary > .nf-card:first-child progress { height: 10px; accent-color: #17684c; }
+.nf-meal-card { border-color: #e2eae7; }
+.nf-meal-summary { min-height: 76px; }
+.nf-meal-heading strong { color: #203a2e; }
+.nf-meal-totals strong { color: #17684c; }
+.nf-planned-today { padding: 0; overflow: hidden; }
+.nf-plan-disclosure { list-style: none; cursor: pointer; padding: 17px 20px; font-weight: 700; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.nf-plan-disclosure::-webkit-details-marker { display: none; }
+.nf-plan-disclosure span { color: #17684c; font-size: 12px; }
+.nf-plan-disclosure-content { padding: 0 20px 20px; border-top: 1px solid #e7ede9; }
+.nf-planned-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 12px 0; }
+.nf-planned-meal { padding: 14px; background: #f7faf8; border: 1px solid #e4ece6; border-radius: 13px; }
+.nf-planned-meal ul { padding-left: 18px; margin: 10px 0 0; font-size: 12px; line-height: 1.65; }
+.nf-planned-meal li { margin: 4px 0; }
+.nf-planned-meal li span { color: #65766d; }
+@media (max-width: 680px) {
+  .nf-header { padding: 14px 14px 10px; flex-wrap: wrap; }
+  .nf-header-tools { gap: 8px; width: 100%; justify-content: space-between; }
+  .nf-settings-link { font-size: 12px; padding: 8px 10px; }
+  .nf-nav { margin: 0 12px; gap: 4px; }
+  .nf-nav button { padding: 11px 3px; font-size: 10px; min-height: 58px; }
+  .nf-shell { padding-top: 18px; }
+  .nf-diary > .nf-card:first-child .nf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .nf-diary > .nf-card:first-child .nf-grid > :first-child { grid-column: 1 / -1; }
+  .nf-diary > .nf-card:first-child .nf-grid > :last-child { grid-column: 1 / -1; }
+  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row { padding: 10px; }
+  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row p { font-size: 12px; }
+  .nf-planned-grid { grid-template-columns: 1fr; }
+}
