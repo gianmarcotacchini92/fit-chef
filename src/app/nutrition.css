@@ -99,3 +99,12 @@
   .nf-meal-summary small { font-size: 10px; }
   .nf-meal-details { padding: 6px 10px 12px; }
 }
+
+/* Top-level actions make daily logging, new recipes and the weekly plan discoverable. */
+.nf-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
+.nf-quick-action { min-height: 52px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; gap: 9px; border-radius: 12px; border: 1px solid #cedacb; color: #365c3c; background: #fff; font-weight: 700; font-size: 13px; }
+.nf-quick-action:hover { background: #eaf1e6; }
+@media (max-width: 680px) {
+  .nf-quick-actions { gap: 6px; }
+  .nf-quick-action { flex-direction: column; gap: 6px; padding: 9px 5px; min-height: 72px; font-size: 11px; text-align: center; }
+}
