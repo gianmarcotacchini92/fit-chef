@@ -261,7 +261,20 @@ export function NutritionApp() {
       </div>
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
-          <section className="nf-card nf-planned-today" aria-label="Dieta settimanale prevista oggi">
+          
+          {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
+          <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} savedFoods={nutrition.savedFoods ?? []} onSaveFood={saveFood} onDeleteFood={deleteFood} date={date} onDate={setDate}
+            targets={targetsOnDate(nutrition, date)} onAdd={addEntries} onSaveMeal={saveMeal}
+            onUpdate={(entry) => {
+              const parsed = diaryEntrySchema.safeParse(entry);
+              if (!parsed.success || !nutrition.entries.some((item) => item.id === entry.id)) { setNotice("Modifica non valida: la voce del diario non e stata cambiata."); return; }
+              updateNutrition((current) => ({ ...current, entries: current.entries.map((item) => item.id === entry.id ? parsed.data : item) }));
+            }}
+            onDelete={(id) => updateNutrition((current) => ({ ...current, entries: current.entries.filter((item) => item.id !== id) }))}
+            onDeleteMeal={(id) => updateNutrition((current) => ({ ...current, savedMeals: current.savedMeals.filter((item) => item.id !== id) }))}/>
+          <details className="nf-card nf-planned-today" aria-label="Dieta settimanale prevista oggi">
+            <summary className="nf-plan-disclosure">Dieta settimanale prevista · {WEEK_DAYS.find((day) => day.id === planDayForDate(date))?.label} <span>Visualizza</span></summary>
+            <div className="nf-plan-disclosure-content">
             <div className="nf-section-heading">
               <div><p className="nf-eyebrow">DAL TUO PIANO, NON DAL DIARIO</p><h2>Dieta prevista · {WEEK_DAYS.find((day) => day.id === planDayForDate(date))?.label}</h2></div>
               <button type="button" className="nf-text-button" onClick={() => {
@@ -293,17 +306,8 @@ export function NutritionApp() {
               })}
             </div> : <p className="nf-muted">Nessun piano importato. Vai in Piano settimanale per caricare la tua dieta privata.</p>}
             <p className="nf-muted">Pasti pianificati e consumati restano separati. Le quantità senza peso confermato non vengono stimate.</p>
-          </section>
-          {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
-          <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} savedFoods={nutrition.savedFoods ?? []} onSaveFood={saveFood} onDeleteFood={deleteFood} date={date} onDate={setDate}
-            targets={targetsOnDate(nutrition, date)} onAdd={addEntries} onSaveMeal={saveMeal}
-            onUpdate={(entry) => {
-              const parsed = diaryEntrySchema.safeParse(entry);
-              if (!parsed.success || !nutrition.entries.some((item) => item.id === entry.id)) { setNotice("Modifica non valida: la voce del diario non e stata cambiata."); return; }
-              updateNutrition((current) => ({ ...current, entries: current.entries.map((item) => item.id === entry.id ? parsed.data : item) }));
-            }}
-            onDelete={(id) => updateNutrition((current) => ({ ...current, entries: current.entries.filter((item) => item.id !== id) }))}
-            onDeleteMeal={(id) => updateNutrition((current) => ({ ...current, savedMeals: current.savedMeals.filter((item) => item.id !== id) }))}/>
+          </div>
+          </details>
         </>}
         {tab === "profile" && <>
           <NutritionProfile profile={nutrition.profile} targets={nutrition.targets} onConfirm={confirmProfile}/>
