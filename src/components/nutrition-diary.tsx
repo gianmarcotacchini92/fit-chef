@@ -516,7 +516,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
         {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message}</p>}
         {offResult?.status === "error" && offResult.partial && <div className="nf-food-row">
           <h3>Completa il prodotto trovato</h3>
-          <p className="nf-muted">Non devi cambiare scheda: manteniamo il barcode e i valori già disponibili. Inserisci soltanto quelli mancanti leggendo l'etichetta. Non sono state aggiunte calorie inventate.</p>
+          <p className="nf-muted">Non devi cambiare scheda: manteniamo il barcode e i valori già disponibili. Inserisci soltanto quelli mancanti leggendo l&apos;etichetta. Non sono state aggiunte calorie inventate.</p>
           <label className="nf-field">Nome prodotto
             <input value={partialName} onChange={(event) => setPartialName(event.target.value)}/>
           </label>
