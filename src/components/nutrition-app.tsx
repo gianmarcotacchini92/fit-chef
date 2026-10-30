@@ -276,7 +276,7 @@ export function NutritionApp() {
               </div>)}</div>
           </section>
         </>}
-        {tab === "week" && <NutritionWeek date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} targets={targetsOnDate(nutrition, date)} weightKg={nutrition.profile?.weightKg} onChange={(state) => setWorkspace((current) => ({ ...current, weeklyDiet: state }))} onAdd={addEntries}/>}
+        {tab === "week" && <NutritionWeek date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} targets={targetsOnDate(nutrition, date)} weightKg={nutrition.profile?.weightKg} onChange={(state) => setWorkspace((current) => ({ ...current, weeklyDiet: state }))} savedFoods={nutrition.savedFoods ?? []} onAdd={addEntries}/>}
         {tab === "archive" && <><RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
           <label className="nf-field">Pasto per le ricette<select value={archiveMeal} onChange={(event) => setArchiveMeal(z.enum(["breakfast", "lunch", "snack", "dinner"]).parse(event.target.value))}>
             <option value="breakfast">Colazione</option><option value="lunch">Pranzo</option><option value="snack">Spuntino</option><option value="dinner">Cena</option>
