@@ -111,7 +111,7 @@ export function SmartMealInput({ date, savedFoods, onAdd, onSaveFood }: {
       </div>}
 
       {warnings.length > 0 ? <div className="nf-alert" role="alert">{warnings.join(" ")}</div>
-      : <RusticPieGuide key={description} initialSlices={guided.slices} initialSize={guided.size} onSave={onSaveFood}
+      : <RusticPieGuide key={description} initialSlices={guided.slices} initialSize={guided.size} onSave={onSaveFood} onInvalidate={() => { setItems([]); setReady(false); }}
           onPreview={(food, grams, note) => {
             setItems([{ key: crypto.randomUUID(), food, grams: String(grams), note, estimated: true }]);
             setWarnings([]); setReady(true);
