@@ -186,3 +186,35 @@ test("barcode lookup distinguishes an existing incomplete product from a v3 not-
   assert.equal(result.status, "error");
   if (result.status === "error") assert.match(result.message, /Prodotto trovato/);
 });
+
+test("incomplete v2 record retains known name, brand, barcode and known nutrient values", async () => {
+  const result = await fetchOffProduct("8017596141880", { fetchImpl: async (input) =>
+    String(input).includes("/api/v3.6/")
+      ? jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404)
+      : jsonResponse({ status: 1, product: { product_name: "Prodotto da completare", brands: "Marca test",
+        nutriments: { "energy-kcal_100g": 310, "proteins_100g": 12 } } }),
+  });
+  assert.equal(result.status, "error");
+  if (result.status === "error") {
+    assert.equal(result.partial?.barcode, "8017596141880");
+    assert.equal(result.partial?.name, "Prodotto da completare");
+    assert.equal(result.partial?.brands, "Marca test");
+    assert.equal(result.partial?.per100g.kcal, 310);
+    assert.equal(result.partial?.per100g.protein, 12);
+    assert.equal(result.partial?.per100g.carbs, null);
+  }
+});
+
+test("incomplete v3 nutrition does not make up missing macros", async () => {
+  const result = await fetchOffProduct("8007777777777", { fetchImpl: async (input) =>
+    String(input).includes("/api/v3.6/")
+      ? found({ "energy-kcal": full["energy-kcal"], proteins: full.proteins })
+      : jsonResponse({ status: 0 }),
+  });
+  assert.equal(result.status, "error");
+  if (result.status === "error") {
+    assert.equal(result.partial?.per100g.kcal, 59);
+    assert.equal(result.partial?.per100g.protein, 10.3);
+    assert.equal(result.partial?.per100g.carbs, null);
+  }
+});

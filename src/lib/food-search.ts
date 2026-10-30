@@ -53,10 +53,14 @@ export type OffProduct = {
   per100g: { kcal: number; protein: number; carbs: number; fat: number };
   fiber: number | null;
 };
+export type OffPartialProduct = {
+  name: string; brands: string; barcode: string;
+  per100g: { kcal: number | null; protein: number | null; carbs: number | null; fat: number | null; fiber: number | null };
+};
 export type OffLookup =
   | { status: "ok"; product: OffProduct }
   | { status: "not-found"; message: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; partial?: OffPartialProduct };
 
 // Open Food Facts API v3.6 (current; v2 is deprecated). Read limit is 15 requests/min/IP, so stay well below it.
 const OFF_ENDPOINT = "https://world.openfoodfacts.org/api/v3.6/product";
@@ -122,7 +126,17 @@ function parseOffBody(body: OffBody, barcode: string): OffLookup {
   if (body.result?.id === "product_not_found") return { status: "not-found", message: "Nessun prodotto trovato per questo codice a barre su Open Food Facts." };
   if (body.status !== "success" || !body.product) return { status: "error", message: "Risposta di Open Food Facts non valida o prodotto non disponibile." };
   const set = body.product.nutrition?.aggregated_set;
-  if (!set?.nutrients) return { status: "error", message: "Dati nutrizionali non disponibili su Open Food Facts per questo prodotto: inseriscili a mano dall'etichetta." };
+  const name = typeof body.product.product_name === "string" && body.product.product_name.trim() ? body.product.product_name.trim() : "Prodotto senza nome su Open Food Facts";
+  const brands = typeof body.product.brands === "string" ? body.product.brands.trim() : "";
+  const partial = (nutrients: Record<string, OffNutrient> = {}): OffPartialProduct => ({
+    name, brands, barcode,
+    per100g: {
+      kcal: kcal(nutrients), protein: grams(nutrients, "proteins"),
+      carbs: grams(nutrients, "carbohydrates"), fat: grams(nutrients, "fat"),
+      fiber: grams(nutrients, "fiber"),
+    },
+  });
+  if (!set?.nutrients) return { status: "error", message: "Prodotto trovato, ma dati nutrizionali non disponibili: completa i campi dall'etichetta.", partial: partial() };
   if (set.per !== "100g") return { status: "error", message: "I valori di questo prodotto non sono espressi per 100 g (ad esempio per 100 ml o per porzione): senza la densita non posso convertirli. Inseriscili a mano dall'etichetta." };
   if (set.preparation !== undefined && set.preparation !== "as_sold") return { status: "error", message: "I valori di questo prodotto riguardano il prodotto preparato, non come venduto: inseriscili a mano per evitare errori." };
   const nutrients = set.nutrients;
@@ -131,11 +145,9 @@ function parseOffBody(body: OffBody, barcode: string): OffLookup {
   const carbs = grams(nutrients, "carbohydrates");
   const fat = grams(nutrients, "fat");
   if (energy === null || protein === null || carbs === null || fat === null) {
-    return { status: "error", message: "Dati essenziali mancanti su Open Food Facts: energia, proteine, carboidrati o grassi non dichiarati per 100 g. Inseriscili a mano dall'etichetta." };
+    return { status: "error", message: "Dati essenziali mancanti su Open Food Facts: energia, proteine, carboidrati o grassi non dichiarati per 100 g. Completa i campi dall'etichetta.", partial: partial(nutrients) };
   }
   const fiber = grams(nutrients, "fiber");
-  const name = typeof body.product.product_name === "string" && body.product.product_name.trim() ? body.product.product_name.trim() : "Prodotto senza nome su Open Food Facts";
-  const brands = typeof body.product.brands === "string" ? body.product.brands.trim() : "";
   return {
     status: "ok",
     product: {
@@ -157,15 +169,19 @@ type OffV2Body = {
 function parseOffV2(body: OffV2Body, code: string): OffLookup {
   if (body.status === 0) return { status: "not-found", message: "Prodotto non trovato su Open Food Facts (v2/v3)." };
   const p = body.product;
-  if (body.status !== 1 || !p?.nutriments) return { status: "error", message: "Il prodotto esiste ma mancano i dati nutrizionali leggibili." };
+  if (body.status !== 1 || !p) return { status: "error", message: "Risposta di Open Food Facts incompleta." };
   if (p.nutrition_data_per !== undefined && p.nutrition_data_per !== "100g")
     return { status: "error", message: "I dati sono per porzione o per 100 ml: verifica l'etichetta prima di inserirli." };
-  const n = p.nutriments;
+  const n = p.nutriments ?? {};
   const val = (key: string): number | null => typeof n[key] === "number" && Number.isFinite(n[key]) && (n[key] as number) >= 0 ? n[key] as number : null;
   const energy = val("energy-kcal_100g") ?? (val("energy-kj_100g") === null ? null : val("energy-kj_100g")! / KJ_PER_KCAL);
   const protein = val("proteins_100g"), carbs = val("carbohydrates_100g"), fat = val("fat_100g");
   if (energy === null || protein === null || carbs === null || fat === null)
-    return { status: "error", message: "Prodotto trovato, ma mancano kcal/proteine/carboidrati/grassi per 100 g: inserisci i dati dall'etichetta." };
+    return { status: "error", message: "Prodotto trovato, ma mancano alcuni valori per 100 g: completa i campi dall'etichetta.", partial: {
+      name: typeof p.product_name === "string" && p.product_name.trim() ? p.product_name.trim() : "Prodotto senza nome",
+      brands: typeof p.brands === "string" ? p.brands : "", barcode: code,
+      per100g: { kcal: energy === null ? null : round2(energy), protein, carbs, fat, fiber: val("fiber_100g") },
+    } };
   const name = typeof p.product_name === "string" && p.product_name.trim() ? p.product_name.trim() : "Prodotto senza nome";
   return { status: "ok", product: {
     name, brands: typeof p.brands === "string" ? p.brands : "", barcode: code,
@@ -235,7 +251,8 @@ async function requestOff(code: string, options: OffOptions): Promise<OffLookup>
     if (fallback.status === "ok") return fallback;
     // When one API says "missing" but the other confirms a record with incomplete nutrients,
     // show that the product exists rather than misleadingly saying it cannot be found.
-    if (fallback.status === "error" && fallback.message.startsWith("Prodotto trovato")) return fallback;
+    if (fallback.status === "error" && fallback.partial) return fallback;
+    if (primary.status === "error" && primary.partial) return primary;
     if (fallback.status === "not-found" && primary.status === "error" &&
       (primary.message.startsWith("Risposta Open Food Facts") || primary.message.startsWith("Dati nutrizionali"))) {
       return fallback;
