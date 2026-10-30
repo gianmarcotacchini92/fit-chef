@@ -5,7 +5,18 @@ import type { FoodSnapshot } from "./nutrition-diary";
  * Conservative editorial estimates for pizzeria portions: NOT declared product data.
  * Actual dough, toppings, oil and piece size can vary substantially.
  */
+// Crostino model: 70 g of the existing editorial white-pizza estimate,
+// 20 g generic catalog mozzarella and 10 g generic catalog cooked ham per 100 g.
+// These proportions and the 100 g piece are assumptions, not measured recipe data.
+const CROSTINO_VALUES = [
+  290 * .7 + 250 * .2 + 145 * .1,
+  8 * .7 + 18 * .2 + 20 * .1,
+  49 * .7 + 1 * .2 + 1.5 * .1,
+  8 * .7 + 19 * .2 + 6.5 * .1,
+  2 * .7,
+] as const;
 const PIZZERIA = [
+  { key: "pizza-crostino", pattern: /\bpizza\s+(?:al\s+)?crostino\b/i, name: "Pizza crostino (mozzarella e prosciutto cotto)", values: CROSTINO_VALUES, pieceGrams: 100 },
   { key: "pizza-margherita", pattern: /(?:pizza\s+)?margherita/i, name: "Pizza margherita", values: [260, 10, 32, 10, 2], pieceGrams: 95 },
   { key: "pizza-patate", pattern: /(?:pizza\s+(?:con\s+)?patate|pizza\s+alle\s+patate|(?:pezzi?\s+)?di\s+patate)/i, name: "Pizza con patate", values: [250, 7, 36, 9, 2], pieceGrams: 100 },
   { key: "pizza-diavola", pattern: /(?:pizza\s+)?diavola/i, name: "Pizza diavola", values: [295, 12, 31, 13, 2], pieceGrams: 95 },
@@ -31,7 +42,8 @@ const foodFromPizza = (item: typeof PIZZERIA[number]): FoodSnapshot => ({
   id: `estimate-${item.key}`,
   name: item.name,
   state: "porzione di pizzeria: peso indicativo da verificare",
-  source: "Stima editoriale indicativa per 100 g: NON dati del locale e NON un'etichetta nutrizionale. Ingredienti, condimenti, fritti e dimensioni delle porzioni variano. Modifica i grammi prima di confermare.",
+  source: "Stima editoriale indicativa per 100 g: NON dati del locale e NON un'etichetta nutrizionale. Ingredienti, condimenti, fritti e dimensioni delle porzioni variano. Modifica i grammi prima di confermare." +
+    (item.key === "pizza-crostino" ? " Modello ipotetico: 70% pizza bianca (stima editoriale), 20% mozzarella e 10% prosciutto cotto (valori generici del catalogo). Pezzo ipotizzato da 100 g, non misurato. Altri ingredienti e variazioni in cottura non inclusi." : ""),
   per100g: {
     kcal: item.values[0], protein: item.values[1], carbs: item.values[2],
     fat: item.values[3], fiber: item.values[4],
