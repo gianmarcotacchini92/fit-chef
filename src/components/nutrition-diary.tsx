@@ -248,6 +248,22 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     setError("");
   }
 
+  function completePartialBarcode() {
+    if (offResult?.status !== "error" || !offResult.partial) return;
+    const product = offResult.partial;
+    clearManual();
+    setManualName(product.name);
+    setManualState(product.brands ? `confezionato, marca ${product.brands}` : "confezionato");
+    setManualKcal(product.per100g.kcal === null ? "" : String(product.per100g.kcal));
+    setManualProtein(product.per100g.protein === null ? "" : String(product.per100g.protein));
+    setManualCarbs(product.per100g.carbs === null ? "" : String(product.per100g.carbs));
+    setManualFat(product.per100g.fat === null ? "" : String(product.per100g.fat));
+    setManualFiber(product.per100g.fiber === null ? "" : String(product.per100g.fiber));
+    setTab("manual");
+    setNotice(`Prodotto ${product.barcode} importato: completa solo i valori mancanti usando l'etichetta e salva nella libreria.`);
+    setError("");
+  }
+
   function addManual() {
     try {
       const food = manualSnapshot();
@@ -486,7 +502,16 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
         </div>
         {cameraError && <p className="nf-alert" role="alert">{cameraError}</p>}
         {offResult?.status === "not-found" && <p className="nf-alert" role="alert">{offResult.message} Verifica anche la pagina pubblica del prodotto; la scheda può esistere senza un profilo nutrizionale importabile.</p>}
-        {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message} Se lo trovi sul sito, controlla la tabella nutrizionale e salva il prodotto dalla scheda Manuale.</p>}
+        {offResult?.status === "error" && <div className="nf-alert" role="alert">
+          <p>{offResult.message}</p>
+          {offResult.partial && <>
+            <p><strong>{offResult.partial.name}</strong>{offResult.partial.brands ? ` · ${offResult.partial.brands}` : ""}</p>
+            <p>Valori disponibili per 100 g: {(["kcal","protein","carbs","fat","fiber"] as const).map((key) =>
+              `${key}: ${offResult.partial!.per100g[key] === null ? "da completare" : offResult.partial!.per100g[key]}`).join(" · ")}</p>
+            <button type="button" className="nf-button" onClick={completePartialBarcode}>Completa i dati mancanti</button>
+          </>}
+          {!offResult.partial && <p>Controlla la tabella nutrizionale sulla confezione oppure apri la scheda Open Food Facts.</p>}
+        </div>
         {isValidBarcode(barcode) && <p className="nf-muted">
           Codice letto: <strong>{barcode}</strong>. <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(barcode)}`} target="_blank" rel="noreferrer noopener">Apri la scheda su Open Food Facts</a>.
         </p>}
