@@ -108,3 +108,68 @@
   .nf-quick-actions { gap: 6px; }
   .nf-quick-action { flex-direction: column; gap: 6px; padding: 9px 5px; min-height: 72px; font-size: 11px; text-align: center; }
 }
+
+/* Daily-first navigation and information architecture, inspired by lightweight macro trackers. */
+.nf-app { --nf-accent: #176b60; --nf-ink: #182b30; --nf-surface: #fff; --nf-line: #e6ebef; background: #f5f7fa; color: var(--nf-ink); }
+.nf-header { padding-top: 16px; padding-bottom: 16px; }
+.nf-brand-icon { background: var(--nf-accent); border-radius: 13px; }
+.nf-brand { font-weight: 650; letter-spacing: -.035em; }
+.nf-nav { background: #fff; border: 1px solid var(--nf-line); border-radius: 16px; box-shadow: 0 4px 20px #1230470a; }
+.nf-nav button { border-radius: 12px; color: #60747b; }
+.nf-nav button[aria-pressed="true"] { background: #e7f5f1; color: var(--nf-accent); box-shadow: none; }
+.nf-page-heading { margin-bottom: 20px; }
+.nf-page-heading > div:first-child { min-width: 0; }
+.nf-page-heading .nf-muted { margin: 8px 0 0; }
+.nf-eyebrow { color: var(--nf-accent); }
+.nf-shell { padding-top: 22px; }
+.nf-card { border-color: var(--nf-line); border-radius: 18px; box-shadow: 0 3px 16px #1b333008; }
+.nf-date-switcher { display: flex; align-items: center; flex-shrink: 0; gap: 8px; padding: 5px; border: 1px solid var(--nf-line); border-radius: 14px; background: white; }
+.nf-date-switcher > button { display: grid; place-items: center; border: 0; border-radius: 9px; background: #f0f6f4; color: var(--nf-accent); width: 38px; height: 38px; flex-shrink: 0; }
+.nf-date-switcher .nf-field { margin: 0; }
+.nf-date-switcher .nf-date { width: 170px; }
+.nf-quick-actions { margin: 0 0 14px; }
+.nf-quick-action { border-color: #dceae5; color: var(--nf-accent); background: #fff; border-radius: 13px; }
+.nf-quick-action:hover { background: #eaf6f1; }
+.nf-button { background: var(--nf-accent); border-color: var(--nf-accent); }
+.nf-button:hover { background: #10564d; }
+.nf-text-button { color: var(--nf-accent); }
+.nf-app progress { accent-color: var(--nf-accent); }
+.nf-meal-card { border-radius: 14px; border-color: var(--nf-line); box-shadow: 0 1px 9px #1b333008; }
+.nf-meal-summary { min-height: 72px; }
+.nf-meal-heading strong { font-size: 16px; }
+.nf-meal-totals strong { color: var(--nf-accent); }
+.nf-food-row { border-color: var(--nf-line); background: #fff; }
+.nf-plan-preview { padding: 17px 20px; margin-bottom: 16px; }
+.nf-plan-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nf-plan-preview-heading h2 { font-size: 17px; margin: 0; }
+.nf-plan-preview-heading .nf-muted { margin: 4px 0 0; }
+.nf-plan-preview-heading .nf-eyebrow { margin-bottom: 4px; }
+.nf-plan-preview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 13px; }
+.nf-plan-preview-meal { position: relative; display: flex; flex-direction: column; gap: 5px; align-items: flex-start; text-align: left; padding: 12px; border: 1px solid #e4ece9; background: #f8fbfa; border-radius: 11px; min-width: 0; }
+.nf-plan-preview-meal-label { font-size: 12px; font-weight: 750; color: var(--nf-accent); }
+.nf-plan-preview-meal-copy { font-size: 12px; color: #50636a; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+.nf-plan-preview-meal > svg { position: absolute; top: 11px; right: 8px; color: #78938a; }
+@media (max-width: 680px) {
+  .nf-app { padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px)); }
+  .nf-header { padding: 13px 14px; }
+  .nf-header .nf-brand small { display: none; }
+  .nf-nav { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; max-width: none; margin: 0; border-radius: 18px 18px 0 0; padding: 7px 6px calc(7px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 24px #142e3a1a; }
+  .nf-nav button { min-height: 51px; gap: 4px; padding: 7px 2px; font-size: 10px; font-weight: 700; }
+  .nf-nav button svg { width: 19px; height: 19px; }
+  .nf-shell { padding: 14px 12px 26px; }
+  .nf-page-heading { gap: 10px; margin-bottom: 14px; }
+  .nf-page-heading h1 { font-size: 26px; }
+  .nf-page-heading .nf-muted { font-size: 12px; }
+  .nf-date-switcher { width: 100%; }
+  .nf-date-switcher .nf-date { flex: 1; min-width: 0; width: auto; }
+  .nf-date-switcher .nf-date input { font-size: 14px; }
+  .nf-card { padding: 15px; margin-bottom: 14px; }
+  .nf-plan-preview { padding: 14px; }
+  .nf-plan-preview-heading { align-items: flex-start; }
+  .nf-plan-preview-heading > .nf-text-button { font-size: 11px; text-align: right; padding-top: 4px; }
+  .nf-plan-preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .nf-plan-preview-meal { min-height: 74px; padding: 9px; }
+  .nf-meal-summary { padding: 12px; }
+  .nf-meal-heading strong { font-size: 15px; }
+  .nf-quick-action { min-height: 65px; }
+}
