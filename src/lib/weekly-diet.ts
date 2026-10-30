@@ -99,7 +99,8 @@ export function applyWeeklyMeal(state: WeeklyDietState, input: RecipeInput): {
   const resolved = resolveWeeklyMeal(state.day, state.meal, state.drafts[key] ?? emptyWeeklyDraft(), state.plan);
   if (resolved.errors.length) return { errors: resolved.errors };
   const conflicts = resolved.items.flatMap((item) => {
-    const food = getIngredient(item.ingredientId)!;
+    const food = getIngredient(item.ingredientId);
+    if (!food) return [`${item.ingredientId}: alimento personale non supportato dal generatore Chef. Usa il Diario per registrare questa ricetta.`];
     const reason = ingredientRestriction(food, input.preferences);
     return reason ? [`${food.name}: ${reason} Non rimuoviamo automaticamente le tue restrizioni.`] : [];
   });
