@@ -9,7 +9,7 @@ const byJsDay: WeekDay[] = ["sunday", "monday", "tuesday", "wednesday", "thursda
 export function dayForDiaryDate(date: string): WeekDay | null {
   if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return null;
   const day = new Date(`${date}T12:00:00`);
-  return Number.isNaN(day.getTime()) ? null : byJsDay[day.getDay()];
+  return Number.isNaN(day.getTime()) || day.getFullYear() !== Number(date.slice(0, 4)) || day.getMonth() + 1 !== Number(date.slice(5, 7)) || day.getDate() !== Number(date.slice(8, 10)) ? null : byJsDay[day.getDay()];
 }
 
 /** Read-only preview: never creates diary entries or assumes meals were eaten. */
