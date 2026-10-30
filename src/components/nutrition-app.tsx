@@ -18,6 +18,7 @@ import { PwaRegistration } from "./pwa-registration";
 import { NutritionProfile } from "./nutrition-profile";
 import { NutritionDiary } from "./nutrition-diary";
 import { NutritionWeek } from "./nutrition-week";
+import { RecipeBuilder } from "./recipe-builder";
 
 const STORAGE_KEY = "fit-chef.workspace.v1";
 const MIGRATION_KEY = "fit-chef.local-plan-migration.v1";
@@ -27,7 +28,7 @@ const tabs = [
   { id: "diary", title: "Diario", icon: Utensils },
   { id: "profile", title: "Profilo e TDEE", icon: Settings2 },
   { id: "week", title: "La mia dieta", icon: CalendarDays },
-  { id: "archive", title: "Archivio ricette", icon: ClipboardList },
+  { id: "archive", title: "Ricette", icon: ClipboardList },
 ] as const;
 
 function initialWorkspace(): LocalState {
@@ -276,7 +277,7 @@ export function NutritionApp() {
           </section>
         </>}
         {tab === "week" && <NutritionWeek date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} targets={targetsOnDate(nutrition, date)} weightKg={nutrition.profile?.weightKg} onChange={(state) => setWorkspace((current) => ({ ...current, weeklyDiet: state }))} onAdd={addEntries}/>}
-        {tab === "archive" && <section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
+        {tab === "archive" && <><RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
           <label className="nf-field">Pasto per le ricette<select value={archiveMeal} onChange={(event) => setArchiveMeal(z.enum(["breakfast", "lunch", "snack", "dinner"]).parse(event.target.value))}>
             <option value="breakfast">Colazione</option><option value="lunch">Pranzo</option><option value="snack">Spuntino</option><option value="dinner">Cena</option>
           </select></label>
@@ -289,7 +290,7 @@ export function NutritionApp() {
                 per100g: { kcal: item.nutrients.kcal * 100 / item.grams, protein: item.nutrients.protein * 100 / item.grams, carbs: item.nutrients.carbs * 100 / item.grams, fat: item.nutrients.fat * 100 / item.grams, fiber: item.nutrients.fiber * 100 / item.grams } },
             })))}>Registra una porzione</button>
           </article>)}</div>
-        </section>}
+        </section></>}
       </fieldset>
       <footer className="nf-footer"><p>Stime nutrizionali e TDEE non sono prescrizioni mediche. Nessun servizio AI a pagamento; riconoscimento del cibo da foto non attivo.</p>
         <div className="nf-footer-actions"><button className="nf-text-button" onClick={exportWorkspace}><Download size={16}/>Esporta tutti i dati</button><label className="nf-field">Importa archivio completo<input type="file" accept=".json,application/json" disabled={busy || cloudBusy} onChange={(event) => {
