@@ -206,3 +206,23 @@
  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row { padding: 10px; }
  .nf-diary > .nf-card:first-child .nf-grid .nf-food-row p { font-size: 12px; }
 }
+
+/* Free-form offline meal entry: easy to reach, editable before adding to the diary. */
+.nf-smart-meal { border: 1px solid #cfe7d6; background: #f9fcfa; }
+.nf-smart-meal .nf-section-heading { margin-bottom: 8px; }
+.nf-smart-meal h2 { display: flex; align-items: center; gap: 9px; }
+.nf-smart-meal textarea { width: 100%; min-height: 84px; padding: 12px; font: inherit; color: inherit; border: 1px solid #bccfc3; border-radius: 12px; background: white; resize: vertical; }
+.nf-smart-meal-actions { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.nf-smart-meal-actions .nf-field { min-width: 165px; margin: 0; }
+.nf-smart-meal-result { margin-top: 14px; }
+.nf-smart-meal-line { display: flex; align-items: center; gap: 14px; }
+.nf-smart-meal-line > div { flex: 1; min-width: 0; }
+.nf-smart-meal-line .nf-field { margin: 0; width: 110px; flex-shrink: 0; }
+.nf-smart-meal-totals { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; padding: 14px; margin: 12px 0; border-radius: 12px; background: #e7f4eb; }
+.nf-smart-meal-totals strong { color: #17664a; font-size: 21px; }
+.nf-smart-meal-totals span { font-size: 13px; }
+@media(max-width:680px) {
+  .nf-smart-meal-actions { align-items: stretch; }
+  .nf-smart-meal-actions .nf-field, .nf-smart-meal-actions .nf-button { flex: 1 1 100%; }
+  .nf-smart-meal-line { flex-wrap: wrap; gap: 8px; }
+}
