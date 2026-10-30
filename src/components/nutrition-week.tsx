@@ -9,7 +9,7 @@ import { getIngredient } from "@/lib/catalog";
 import { plannedDay, adjustPlannedDay, applyDailyAdjustment, type DailyAdjustment } from "@/lib/daily-plan";
 import { minimumDailyProtein } from "@/lib/nutrition-profile";
 import type { MacroTargets } from "@/lib/nutrition-profile";
-import { catalogFood, type DiaryEntry } from "@/lib/nutrition-diary";
+import { catalogFood, type FoodSnapshot, type DiaryEntry } from "@/lib/nutrition-diary";
 import type { WeeklyDietState } from "@/lib/types";
 
 type Props = {
@@ -19,15 +19,16 @@ type Props = {
   onAdd: (entries: DiaryEntry[]) => void;
   targets?: MacroTargets;
   weightKg?: number;
+  savedFoods: FoodSnapshot[];
 };
 
-export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg }: Props) {
+export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg, savedFoods }: Props) {
   const [error, setError] = useState("");
   const [importing, setImporting] = useState(false);
   const [desiredKcal, setDesiredKcal] = useState("");
   const [locks, setLocks] = useState<string[]>([]);
   const [proposal, setProposal] = useState<DailyAdjustment | null>(null);
-  const currentDay = useMemo(() => plannedDay(state, state.day, new Set(locks)), [state, locks]);
+  const currentDay = useMemo(() => plannedDay(state, state.day, new Set(locks), savedFoods), [state, locks, savedFoods]);
   const proteinFloor = weightKg && weightKg > 0 ? minimumDailyProtein(weightKg) : null;
   function previewDay() {
     setError("");
@@ -67,12 +68,12 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
   }
 
   function recordMeal() {
-    const result = resolveWeeklyMeal(state.day, state.meal, draft, state.plan);
+    const result = resolveWeeklyMeal(state.day, state.meal, draft, state.plan, savedFoods);
     if (result.errors.length) { setError(result.errors.join(" ")); return; }
     const createdAt = new Date().toISOString();
     onAdd(result.items.map((item) => ({
       id: crypto.randomUUID(), date, meal: state.meal, createdAt,
-      food: catalogFood(item.ingredientId), grams: item.grams,
+      food: item.food ?? catalogFood(item.ingredientId), grams: item.grams,
     })));
   }
 
@@ -130,9 +131,18 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
         <div className="nf-grid">{meal?.slots.map((slot) => {
           const option = selectedWeeklyOption(slot, draft);
           const food = option ? getIngredient(option.ingredientId) : undefined;
+          const personalFood = option ? savedFoods.find((food) => food.id === option.ingredientId) : undefined;
           return <div className="nf-food-row" key={slot.id}>
             <strong>{slot.label}</strong>
-            {slot.options.length > 1 && <label className="nf-field">Alternativa {slot.label}
+            <label className="nf-field">Sostituisci con alimento/ricetta personale
+              <select value={draft.customFoods?.[slot.id] ?? ""} onChange={(event) => updateDraft({
+                customFoods: { ...draft.customFoods, [slot.id]: event.target.value }, confirmed: false,
+              })}>
+                <option value="">Usa alimento previsto dal piano</option>
+                {savedFoods.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            {slot.options.length > 1 && !draft.customFoods?.[slot.id] && <label className="nf-field">Alternativa {slot.label}
               <select value={draft.choices[slot.id] ?? ""} onChange={(event) => updateDraft({
                 choices: { ...draft.choices, [slot.id]: event.target.value }, confirmed: false,
               })}>
@@ -140,6 +150,7 @@ export function NutritionWeek({ state, date, onChange, onAdd, targets, weightKg 
                 {slot.options.map((item) => <option key={item.ingredientId} value={item.ingredientId}>{item.label ?? getIngredient(item.ingredientId)?.name ?? item.ingredientId}</option>)}
               </select>
             </label>}
+            {personalFood && <p>{personalFood.name} <span className="nf-muted">— ricetta o alimento personale</span></p>}
             {food && <p>{food.name} <span className="nf-muted">— {food.state}</span></p>}
             {option && <label className="nf-field">Grammi {slot.label}
               <input type="number" min="0.1" max="5000" step="0.1" value={option.grams === null ? (draft.grams[weeklyQuantityKey(slot, option)] ?? "") : (draft.overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams))} onChange={(event) => updateDraft({
