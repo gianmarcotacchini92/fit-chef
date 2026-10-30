@@ -11,6 +11,7 @@ import {
 } from "@/lib/nutrition-diary";
 import { fetchOffProduct, isValidBarcode, manualFoodSnapshot, searchCatalog, type OffLookup } from "@/lib/food-search";
 import type { Nutrients, WeekMeal } from "@/lib/types";
+import { SmartMealInput } from "./smart-meal-input";
 
 type Targets = { kcal: number; protein: number; carbs: number; fat: number };
 
@@ -390,6 +391,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const remainingKcal = targets ? targets.kcal - daySummary.total.kcal : null;
 
   return <section className="nf-diary">
+    <SmartMealInput date={date} savedFoods={savedFoods} onAdd={onAdd}/>
     <div className="nf-card">
       <div className="nf-section-heading">
         <div><p className="nf-eyebrow">OGGI, NON UN PIANO IDEALE</p><h2>Riepilogo del {date}</h2></div>
