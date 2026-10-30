@@ -7,7 +7,7 @@ import type { WeekDay, WeeklyDietState } from "@/lib/types";
 const byJsDay: WeekDay[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 export function dayForDiaryDate(date: string): WeekDay | null {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return null;
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return null;
   const day = new Date(`${date}T12:00:00`);
   return Number.isNaN(day.getTime()) ? null : byJsDay[day.getDay()];
 }
