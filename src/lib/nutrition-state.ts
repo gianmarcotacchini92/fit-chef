@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { diaryEntrySchema, foodSnapshotSchema, savedMealSchema } from "./nutrition-diary";
+import { personalRecipeSchema } from "./personal-recipe";
 import { macroTargetsSchema, profileSchema } from "./nutrition-profile";
 
 export const nutritionCheckInSchema = z.strictObject({
@@ -18,9 +19,10 @@ export const nutritionStateSchema = z.strictObject({
   savedMeals: z.array(savedMealSchema).max(100),
   /** Optional for backward compatibility with existing Firebase and JSON workspaces. */
   savedFoods: z.array(foodSnapshotSchema).max(500).optional(),
+  personalRecipes: z.array(personalRecipeSchema).max(100).optional(),
   checkIns: z.array(nutritionCheckInSchema).max(365),
 }).superRefine((state, ctx) => {
-  for (const field of ["entries", "savedMeals", "checkIns", "savedFoods"] as const) {
+  for (const field of ["entries", "savedMeals", "checkIns", "savedFoods", "personalRecipes"] as const) {
     if (state[field] && new Set(state[field].map((item) => item.id)).size !== state[field].length) {
       ctx.addIssue({ code: "custom", path: [field], message: "Identificativi duplicati." });
     }
@@ -32,7 +34,7 @@ export const nutritionStateSchema = z.strictObject({
 
 export type NutritionState = z.infer<typeof nutritionStateSchema>;
 export const emptyNutritionState = (): NutritionState => ({
-  version: 1, entries: [], savedMeals: [], savedFoods: [], checkIns: [],
+  version: 1, entries: [], savedMeals: [], savedFoods: [], personalRecipes: [], checkIns: [],
 });
 
 export function targetsOnDate(state: NutritionState, date: string) {
