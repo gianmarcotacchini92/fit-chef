@@ -153,3 +153,26 @@ test("fetchOffProduct throttles distinct barcodes below the public rate limit an
   clock += 61_000;
   assert.equal((await fetchOffProduct("8999999999999", { fetchImpl, now: () => clock })).status, "ok");
 });
+
+test("barcode lookup retries v2 when product exists there but v3 reports missing", async () => {
+  const calls: string[] = [];
+  const result = await fetchOffProduct("3017624010701", { fetchImpl: async (input) => {
+    calls.push(String(input));
+    if (String(input).includes("/api/v3.6/")) return jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404);
+    return jsonResponse({ status: 1, product: { product_name: "Prodotto prova", brands: "Marca",
+      nutriments: { "energy-kcal_100g": 550, proteins_100g: 7, carbohydrates_100g: 54, fat_100g: 31, fiber_100g: 3 } } });
+  } });
+  assert.equal(result.status, "ok");
+  if (result.status === "ok") assert.equal(result.product.per100g.kcal, 550);
+  assert.equal(calls.length, 2);
+  assert.match(calls[1], /api\\/v2\\/product/);
+});
+
+test("barcode lookup does not invent missing nutrient values on fallback", async () => {
+  const result = await fetchOffProduct("8001234511111", { fetchImpl: async (input) =>
+    String(input).includes("/api/v3.6/")
+      ? jsonResponse({ status: "failure", result: { id: "product_not_found" } }, false, 404)
+      : jsonResponse({ status: 1, product: { product_name: "Etichetta incompleta", nutriments: { "energy-kcal_100g": 200 } } }),
+  });
+  assert.equal(result.status, "not-found");
+});
