@@ -513,7 +513,7 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
             <button type="button" className="nf-button" onClick={completePartialBarcode}>Completa i dati mancanti</button>
           </>}
           {!offResult.partial && <p>Controlla la tabella nutrizionale sulla confezione oppure apri la scheda Open Food Facts.</p>}
-        </div>
+        </div>}
         {isValidBarcode(barcode) && <p className="nf-muted">
           Codice letto: <strong>{barcode}</strong>. <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(barcode)}`} target="_blank" rel="noreferrer noopener">Apri la scheda su Open Food Facts</a>.
         </p>}
