@@ -38,6 +38,16 @@ const foodFromPizza = (item: typeof PIZZERIA[number]): FoodSnapshot => ({
   },
 });
 
+function homeDishFood(item: typeof HOME_DISHES[number]): FoodSnapshot {
+  return {
+    id: "estimate-" + item.key,
+    name: item.name,
+    state: "piatto cotto: ricetta e quantità di olio sconosciute",
+    source: "Stima editoriale generica, non dati del piatto consumato. Ingredienti e preparazione possono cambiare molto calorie e macro. Correggi il peso; per precisione crea la tua ricetta.",
+    per100g: { kcal: item.values[0], protein: item.values[1], carbs: item.values[2], fat: item.values[3], fiber: item.values[4] },
+  };
+}
+
 export type SmartMealItem = {
   food: FoodSnapshot;
   grams: number;
