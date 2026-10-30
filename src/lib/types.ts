@@ -191,6 +191,7 @@ export type WeeklyMealDraft = {
   choices: Record<string, string>;
   grams: Record<string, string>;
   overrides?: Record<string, string>;
+  substitutions?: Record<string, string>;
   confirmed: boolean;
 };
 export type WeeklyDietState = {
