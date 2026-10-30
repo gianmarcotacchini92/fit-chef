@@ -129,6 +129,11 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
   const [offLoading, setOffLoading] = useState(false);
   const [offResult, setOffResult] = useState<OffLookup | null>(null);
   const [offFiber, setOffFiber] = useState("");
+  const [partialName, setPartialName] = useState("");
+  const [partialState, setPartialState] = useState("");
+  const [partialValues, setPartialValues] = useState<Record<"kcal" | "protein" | "carbs" | "fat" | "fiber", string>>({
+    kcal: "", protein: "", carbs: "", fat: "", fiber: "",
+  });
   const [offGrams, setOffGrams] = useState("100");
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -162,6 +167,12 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
       const result = await fetchOffProduct(code, { signal: controller.signal });
       if (controller.signal.aborted) return;
       setOffResult(result);
+      if (result.status === "error" && result.partial) {
+        setPartialName(result.partial.name.startsWith("Prodotto senza nome") ? "" : result.partial.name);
+        setPartialState(result.partial.brands ? `confezionato, marca ${result.partial.brands}` : "confezionato");
+        setPartialValues(Object.fromEntries((["kcal", "protein", "carbs", "fat", "fiber"] as const).map((key) =>
+          [key, result.partial!.per100g[key] === null ? "" : String(result.partial!.per100g[key])])) as typeof partialValues);
+      }
     } finally {
       if (!controller.signal.aborted) setOffLoading(false);
     }
@@ -277,6 +288,22 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
     };
     addToCart(food, offGrams);
     setOffResult(null); setBarcode(""); setOffFiber("");
+  }
+
+  function saveIncompleteOff() {
+    if (offResult?.status !== "error" || !offResult.partial) return;
+    try {
+      const keys = ["kcal", "protein", "carbs", "fat", "fiber"] as const;
+      if (keys.some((key) => !partialValues[key].trim()))
+        throw new Error("Completa tutti i valori per 100 g dall'etichetta. Per le fibre non dichiarate, verifica prima il prodotto: non assumiamo automaticamente zero.");
+      const per100g = Object.fromEntries(keys.map((key) => [key, Number(partialValues[key].replace(",", "."))])) as Nutrients;
+      const food = manualFoodSnapshot({
+        name: partialName, state: partialState, barcode: offResult.partial.barcode, per100g,
+      });
+      onSaveFood(food);
+      setNotice(`Prodotto "${food.name}" salvato nella tua libreria con barcode ${food.barcode}. Potrai cercarlo per nome o codice senza riscrivere i dati.`);
+      setError("");
+    } catch (err) { setError(err instanceof Error ? err.message : "I valori inseriti non sono validi."); }
   }
 
   function saveOffProduct() {
@@ -486,7 +513,24 @@ export function NutritionDiary({ entries, savedMeals, savedFoods, onSaveFood, on
         </div>
         {cameraError && <p className="nf-alert" role="alert">{cameraError}</p>}
         {offResult?.status === "not-found" && <p className="nf-alert" role="alert">{offResult.message} Verifica anche la pagina pubblica del prodotto; la scheda può esistere senza un profilo nutrizionale importabile.</p>}
-        {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message} Se lo trovi sul sito, controlla la tabella nutrizionale e salva il prodotto dalla scheda Manuale.</p>}
+        {offResult?.status === "error" && <p className="nf-alert" role="alert">{offResult.message}</p>}
+        {offResult?.status === "error" && offResult.partial && <div className="nf-food-row">
+          <h3>Completa il prodotto trovato</h3>
+          <p className="nf-muted">Non devi cambiare scheda: manteniamo il barcode e i valori già disponibili. Inserisci soltanto quelli mancanti leggendo l'etichetta. Non sono state aggiunte calorie inventate.</p>
+          <label className="nf-field">Nome prodotto
+            <input value={partialName} onChange={(event) => setPartialName(event.target.value)}/>
+          </label>
+          <label className="nf-field">Marca e stato del prodotto
+            <input value={partialState} onChange={(event) => setPartialState(event.target.value)}/>
+          </label>
+          <div className="nf-grid">{(["kcal", "protein", "carbs", "fat", "fiber"] as const).map((key) =>
+            <label className="nf-field" key={key}>
+              {key === "kcal" ? "Kcal" : key === "protein" ? "Proteine" : key === "carbs" ? "Carboidrati" : key === "fat" ? "Grassi" : "Fibre"} per 100 g
+              <input type="number" min="0" step="any" value={partialValues[key]} onChange={(event) =>
+                setPartialValues((previous) => ({ ...previous, [key]: event.target.value }))}/>
+            </label>)}</div>
+          <button type="button" className="nf-button" onClick={saveIncompleteOff}><Save size={16}/>Salva alimento con barcode</button>
+        </div>}
         {isValidBarcode(barcode) && <p className="nf-muted">
           Codice letto: <strong>{barcode}</strong>. <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(barcode)}`} target="_blank" rel="noreferrer noopener">Apri la scheda su Open Food Facts</a>.
         </p>}
