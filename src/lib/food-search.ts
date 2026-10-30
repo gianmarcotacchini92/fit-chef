@@ -146,6 +146,28 @@ function parseOffBody(body: OffBody, barcode: string): OffLookup {
   };
 }
 
+
+type LegacyBody = { status?: number; product?: { product_name?: string; brands?: string; nutriments?: Record<string, unknown> } };
+function legacyNutrient(n: Record<string, unknown>, key: string): number | null {
+  const value = n[key + "_100g"];
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+function parseLegacy(body: LegacyBody, barcode: string): OffLookup {
+  if (body.status === 0) return { status: "not-found", message: "Prodotto non presente su Open Food Facts." };
+  const n = body.product?.nutriments;
+  if (!n) return { status: "error", message: "Dati per 100 g mancanti nell'archivio." };
+  const energy = legacyNutrient(n, "energy-kcal") ?? (legacyNutrient(n, "energy-kj") !== null ? legacyNutrient(n, "energy-kj")! / KJ_PER_KCAL : null);
+  const protein = legacyNutrient(n, "proteins");
+  const carbs = legacyNutrient(n, "carbohydrates");
+  const fat = legacyNutrient(n, "fat");
+  if (energy === null || protein === null || carbs === null || fat === null) return { status: "error", message: "Dati per 100 g incompleti." };
+  return { status: "ok", product: {
+    name: body.product?.product_name || "Prodotto senza nome", brands: body.product?.brands ?? "", barcode,
+    per100g: { kcal: round2(energy), protein: round2(protein), carbs: round2(carbs), fat: round2(fat) },
+    fiber: legacyNutrient(n,"fiber"),
+  } };
+}
+
 type OffOptions = { signal?: AbortSignal; timeoutMs?: number; fetchImpl?: typeof fetch; now?: () => number };
 
 /**
