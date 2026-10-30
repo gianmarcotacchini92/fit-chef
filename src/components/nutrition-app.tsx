@@ -4,6 +4,8 @@ import { useEffect, useReducer, useState, type SetStateAction } from "react";
 import { signOut } from "firebase/auth";
 import { z } from "zod";
 import { CalendarDays, ClipboardList, Download, Settings2, Utensils } from "lucide-react";
+import { getIngredient } from "@/lib/catalog";
+import { WEEK_DAYS, WEEK_MEALS, emptyWeeklyDraft, selectedWeeklyOption, weeklyMealKey, weeklyQuantityKey } from "@/lib/weekly-diet";
 import { DEFAULT_MEAL_INPUT } from "@/lib/defaults";
 import { getCloudClient } from "@/lib/cloud";
 import { clearCloudBinding } from "@/lib/cloud-storage";
@@ -26,10 +28,15 @@ const STATIC_SITE = process.env.NEXT_PUBLIC_FIT_STATIC === "true";
 type Tab = "diary" | "profile" | "week" | "archive";
 const tabs = [
   { id: "diary", title: "Diario", icon: Utensils },
-  { id: "profile", title: "Profilo e TDEE", icon: Settings2 },
-  { id: "week", title: "La mia dieta", icon: CalendarDays },
-  { id: "archive", title: "Ricette", icon: ClipboardList },
+  { id: "week", title: "Piano settimanale", icon: CalendarDays },
+  { id: "archive", title: "Ricette e alimenti", icon: ClipboardList },
 ] as const;
+
+function planDayForDate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const jsDay = new Date(year, month - 1, day, 12).getDay();
+  return WEEK_DAYS[(jsDay + 6) % 7].id;
+}
 
 function initialWorkspace(): LocalState {
   return {
@@ -238,7 +245,10 @@ export function NutritionApp() {
     <PwaRegistration/>
     <header className="nf-header">
       <a className="nf-brand" href="#main-content"><span className="nf-brand-icon"><Utensils size={22}/></span><span>FIT <strong>Diario</strong><small>Quello che mangi. Senza complicazioni.</small></span></a>
-      <CloudAccount state={workspace} onRestore={setWorkspace} onMessage={setNotice} ready={ready && writable} disabled={!writable || busy} onBusyChange={setCloudBusy}/>
+      <div className="nf-header-tools">
+        <button type="button" className="nf-settings-link" aria-pressed={tab === "profile"} onClick={() => { setTab("profile"); setNotice(""); }}><Settings2 size={18}/>Profilo e obiettivi</button>
+        <CloudAccount state={workspace} onRestore={setWorkspace} onMessage={setNotice} ready={ready && writable} disabled={!writable || busy} onBusyChange={setCloudBusy}/>
+      </div>
     </header>
     <nav className="nf-nav" aria-label="Sezioni dell'app">{tabs.map(({ id, title, icon: Icon }) =>
       <button key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setNotice(""); }}><Icon size={18}/>{title}</button>)}</nav>
@@ -246,22 +256,44 @@ export function NutritionApp() {
       {notice && <div className="nf-alert nf-notice" role="status"><p>{notice}</p><button aria-label="Chiudi messaggio" onClick={() => setNotice("")}>×</button></div>}
       {store.error && <div className="nf-alert" role="alert">{store.error}</div>}
       {storageError && <div className="nf-alert" role="alert"><p>{storageError}</p><button onClick={exportWorkspace}>Esporta copia locale</button><button onClick={() => void resetLocal()}>Ripristina dispositivo</button></div>}
-      <div className="nf-page-heading"><div><p className="nf-eyebrow">UN PASSO ALLA VOLTA</p><h1>{tab === "diary" ? "Il tuo diario alimentare" : tabs.find((entry) => entry.id === tab)?.title}</h1></div>
+      <div className="nf-page-heading"><div><p className="nf-eyebrow">{tab === "diary" ? "IL TUO BILANCIO DI OGGI" : "ALIMENTAZIONE"}</p><h1>{tab === "diary" ? "Diario alimentare" : tab === "profile" ? "Profilo e TDEE" : tabs.find((entry) => entry.id === tab)?.title}</h1></div>
         <label className="nf-date nf-field">Data del diario<input type="date" required value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }}/></label>
-      </div>
-      <div className="nf-quick-actions" aria-label="Azioni rapide">
-        <button type="button" className="nf-quick-action" onClick={() => { setTab("diary"); setNotice("Apri Aggiungi alimenti per cercare o scansionare un prodotto."); }}>
-          <Utensils size={18}/> Registra un alimento
-        </button>
-        <button type="button" className="nf-quick-action" onClick={() => { setRecipeIntro(true); setTab("archive"); setNotice(""); }}>
-          <ClipboardList size={18}/> Crea una ricetta
-        </button>
-        <button type="button" className="nf-quick-action" onClick={() => { setTab("week"); setNotice(""); }}>
-          <CalendarDays size={18}/> Vedi la dieta
-        </button>
       </div>
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
+          <section className="nf-card nf-planned-today" aria-label="Dieta settimanale prevista oggi">
+            <div className="nf-section-heading">
+              <div><p className="nf-eyebrow">DAL TUO PIANO, NON DAL DIARIO</p><h2>Dieta prevista · {WEEK_DAYS.find((day) => day.id === planDayForDate(date))?.label}</h2></div>
+              <button type="button" className="nf-text-button" onClick={() => {
+                setWorkspace((current) => ({
+                  ...current, weeklyDiet: { ...(current.weeklyDiet ?? initialWeeklyDietState()), day: planDayForDate(date) },
+                }));
+                setTab("week");
+              }}>Apri il piano completo</button>
+            </div>
+            {workspace.weeklyDiet?.plan ? <div className="nf-planned-grid">
+              {WEEK_MEALS.map(({ id, label }) => {
+                const plan = workspace.weeklyDiet!.plan![planDayForDate(date)][id];
+                const draft = workspace.weeklyDiet!.drafts[weeklyMealKey(planDayForDate(date), id)] ?? emptyWeeklyDraft();
+                return <div className="nf-planned-meal" key={id}>
+                  <strong>{label}</strong>
+                  {plan.freeChoice ? <p className="nf-muted">Pasto libero · da registrare</p> : <ul>
+                    {plan.slots.map((slot) => {
+                      const option = selectedWeeklyOption(slot, draft);
+                      const personalFood = option && (nutrition.savedFoods ?? []).find((food) => food.id === option.ingredientId);
+                      const food = option && getIngredient(option.ingredientId);
+                      const quantity = option && (option.grams === null
+                        ? draft.grams[weeklyQuantityKey(slot, option)]
+                        : draft.overrides?.[weeklyQuantityKey(slot, option)] ?? String(option.grams));
+                      return <li key={slot.id}>{personalFood?.name ?? food?.name ?? slot.label}
+                        <span>{quantity?.trim() ? ` · ${quantity} g` : " · da definire"}</span></li>;
+                    })}
+                  </ul>}
+                </div>;
+              })}
+            </div> : <p className="nf-muted">Nessun piano importato. Vai in Piano settimanale per caricare la tua dieta privata.</p>}
+            <p className="nf-muted">Pasti pianificati e consumati restano separati. Le quantità senza peso confermato non vengono stimate.</p>
+          </section>
           {!nutrition.targets && <div className="nf-card nf-onboarding"><div><h2>Partiamo dal tuo obiettivo</h2><p>Puoi gia registrare i pasti. Per vedere le calorie rimanenti, calcola il TDEE e conferma i tuoi target.</p></div><button className="nf-button" onClick={() => setTab("profile")}>Imposta profilo e obiettivi</button></div>}
           <NutritionDiary entries={nutrition.entries} savedMeals={nutrition.savedMeals} savedFoods={nutrition.savedFoods ?? []} onSaveFood={saveFood} onDeleteFood={deleteFood} date={date} onDate={setDate}
             targets={targetsOnDate(nutrition, date)} onAdd={addEntries} onSaveMeal={saveMeal}
