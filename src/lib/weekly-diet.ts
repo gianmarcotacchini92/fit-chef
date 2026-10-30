@@ -1,4 +1,5 @@
 import { getIngredient } from "./catalog";
+import type { FoodSnapshot } from "./nutrition-diary";
 import { createMealBase, ingredientRestriction } from "./meal";
 import { weeklyPlanSchema } from "./validation";
 import type { PantryItem, RecipeInput, WeekDay, WeekMeal, WeeklyDietState, WeeklyMeal, WeeklyMealDraft, WeeklyOption, WeeklyPlan, WeeklySlot } from "./types";
@@ -45,6 +46,8 @@ export function migrateWeeklyPlan(state: WeeklyDietState, plan: WeeklyPlan): Wee
 export const emptyWeeklyDraft = (): WeeklyMealDraft => ({ choices: {}, grams: {}, confirmed: false });
 export const weeklyMealKey = (day: WeekDay, meal: WeekMeal) => `${day}-${meal}`;
 export function selectedWeeklyOption(slot: WeeklySlot, draft: WeeklyMealDraft): WeeklyOption | undefined {
+  const substitute = draft.substitutions?.[slot.id];
+  if (substitute) return { ingredientId: substitute, grams: null, label: "Alimento personale" };
   return slot.options.length === 1 ? slot.options[0] : slot.options.find((option) => option.ingredientId === draft.choices[slot.id]);
 }
 export const weeklyQuantityKey = (slot: WeeklySlot, option: WeeklyOption) => `${slot.id}-${option.ingredientId}`;
@@ -53,7 +56,7 @@ export function weeklySuggestedMinutes(plan: WeeklyMeal, servings: number): numb
 }
 
 /** No bundled fallback: callers must supply the current user's plan. */
-export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMealDraft, weeklyPlan?: WeeklyPlan): {
+export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMealDraft, weeklyPlan?: WeeklyPlan, personalFoods: FoodSnapshot[] = []): {
   items: { ingredientId: string; grams: number }[]; errors: string[];
 } {
   const plan = weeklyPlan?.[day][meal];
@@ -67,7 +70,7 @@ export function resolveWeeklyMeal(day: WeekDay, meal: WeekMeal, draft: WeeklyMea
       errors.push(`${slot.label}: scegli una delle alternative, senza sommarle.`);
       continue;
     }
-    const ingredient = getIngredient(option.ingredientId);
+    const ingredient = getIngredient(option.ingredientId) ?? personalFoods.find(item => item.id === option.ingredientId);
     if (!ingredient) {
       errors.push(`${slot.label}: questa voce non e ancora disponibile nel catalogo.`);
       continue;
