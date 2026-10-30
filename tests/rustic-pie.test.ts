@@ -43,3 +43,27 @@ test("out-of-range parameters do not produce diary values", () => {
   assert.equal(estimateRusticPie({ ...cfg, knownGrams: null, slices: 0 }),null);
   assert.equal(estimateRusticPie({ ...cfg, knownGrams: null, pastrySharePercent: 95 }),null);
 });
+
+test("real phrases keep suffix counts, singular portions and decimal measured weights", () => {
+  assert.equal(detectRusticPie("una porzione di torta rustica")?.slices, 1);
+  assert.equal(detectRusticPie("torta rustica alla ricotta, 2 fette")?.slices, 2);
+  assert.equal(detectRusticPie("200,5 g di torta rustica")?.knownGrams, 200.5);
+  assert.equal(detectRusticPie("torta rustica")?.slices, 0);
+  assert.equal(detectRusticPie("-2 fette di torta rustica")?.slices, -2);
+  assert.equal(detectRusticPie("-200 g torta rustica")?.knownGrams, -200);
+  assert.equal(detectRusticPie("1.5 fette di torta rustica")?.slices, 1.5);
+});
+
+test("measured mass needs no slice count; invalid runtime values never throw or escape the range", () => {
+  const cfg = { slices: 0, size: "medium" as const, base: "puff" as const, filling: "ricotta" as const, knownGrams: 200, pastrySharePercent: 40 };
+  assert.equal(estimateRusticPie(cfg)?.centralGrams, 200);
+  for (const bad of [NaN, Infinity, -1, 0, 5001]) assert.equal(estimateRusticPie({ ...cfg, knownGrams: bad }), null);
+  // Simulate untrusted persisted/runtime input.
+  assert.equal(estimateRusticPie({ ...cfg, size: "invalid" as typeof cfg.size }), null);
+  for (const share of [20, 70, NaN, Infinity]) assert.equal(estimateRusticPie({ ...cfg, pastrySharePercent: share }), null);
+  for (const share of [25, 40, 55]) {
+    const e = estimateRusticPie({ ...cfg, pastrySharePercent: share })!;
+    const center = Math.round(e.food.per100g.kcal * 2);
+    assert.ok(center >= e.lowKcal && center <= e.highKcal);
+  }
+});

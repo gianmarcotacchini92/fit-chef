@@ -19,7 +19,7 @@ type Props = {
   entries: DiaryEntry[];
   savedMeals: SavedMeal[];
   savedFoods: FoodSnapshot[];
-  onSaveFood: (food: FoodSnapshot) => void;
+  onSaveFood: (food: FoodSnapshot) => boolean;
   onDeleteFood: (id: string) => void;
   date: string;
   onDate: (date: string) => void;

@@ -73,3 +73,30 @@ test("everyday plated dishes handle pieces and portions conservatively", () => {
   assert.deepEqual(result.warnings, []);
   assert.deepEqual(result.items.map(item => item.grams), [170, 180]);
 });
+
+
+test("pizza crostino supports pieces and declared grams with explicit assumptions", () => {
+  for (const phrase of ["2 pezzi di pizza crostino", "due fette di pizza al crostino"]) {
+    const result = parseSmartMeal(phrase);
+    assert.deepEqual(result.warnings, []);
+    assert.equal(result.items[0]?.food.id, "estimate-pizza-crostino");
+    assert.equal(result.items[0]?.grams, 200);
+    assert.match(result.items[0].food.source, /70% pizza bianca/);
+    assert.match(result.items[0].food.source, /non misurato/);
+    assert.ok(Math.abs(result.items[0].food.per100g.kcal - 267.5) < 0.001);
+  }
+  const weighed = parseSmartMeal("180,5 g pizza crostino");
+  assert.equal(weighed.items[0]?.grams, 180.5);
+  assert.match(weighed.items[0].description, /nutrienti stimati/);
+  assert.equal(parseSmartMeal("pizza crostino").items.length, 0);
+  assert.match(parseSmartMeal("pizza crostino").warnings[0], /quanti pezzi/);
+  assert.equal(parseSmartMeal("2 crostini").items.length, 0);
+});
+
+test("pizza crostino coexists with other foods and respects a saved product", () => {
+  const meal = parseSmartMeal("2 pezzi di pizza crostino, 150 g pollo, un supplì");
+  assert.deepEqual(meal.warnings, []);
+  assert.deepEqual(meal.items.map(item => item.grams), [200,150,90]);
+  const custom = { ...catalogFood("rice"), id: "my-crostino", name: "Pizza crostino" };
+  assert.equal(parseSmartMeal("150 g pizza crostino", [custom]).items[0]?.food.id, custom.id);
+});

@@ -5,7 +5,18 @@ import type { FoodSnapshot } from "./nutrition-diary";
  * Conservative editorial estimates for pizzeria portions: NOT declared product data.
  * Actual dough, toppings, oil and piece size can vary substantially.
  */
+// Crostino model: 70 g of the existing editorial white-pizza estimate,
+// 20 g generic catalog mozzarella and 10 g generic catalog cooked ham per 100 g.
+// These proportions and the 100 g piece are assumptions, not measured recipe data.
+const CROSTINO_VALUES = [
+  290 * .7 + 250 * .2 + 145 * .1,
+  8 * .7 + 18 * .2 + 20 * .1,
+  49 * .7 + 1 * .2 + 1.5 * .1,
+  8 * .7 + 19 * .2 + 6.5 * .1,
+  2 * .7,
+] as const;
 const PIZZERIA = [
+  { key: "pizza-crostino", pattern: /\bpizza\s+(?:al\s+)?crostino\b/i, name: "Pizza crostino (mozzarella e prosciutto cotto)", values: CROSTINO_VALUES, pieceGrams: 100 },
   { key: "pizza-margherita", pattern: /(?:pizza\s+)?margherita/i, name: "Pizza margherita", values: [260, 10, 32, 10, 2], pieceGrams: 95 },
   { key: "pizza-patate", pattern: /(?:pizza\s+(?:con\s+)?patate|pizza\s+alle\s+patate|(?:pezzi?\s+)?di\s+patate)/i, name: "Pizza con patate", values: [250, 7, 36, 9, 2], pieceGrams: 100 },
   { key: "pizza-diavola", pattern: /(?:pizza\s+)?diavola/i, name: "Pizza diavola", values: [295, 12, 31, 13, 2], pieceGrams: 95 },
@@ -31,7 +42,8 @@ const foodFromPizza = (item: typeof PIZZERIA[number]): FoodSnapshot => ({
   id: `estimate-${item.key}`,
   name: item.name,
   state: "porzione di pizzeria: peso indicativo da verificare",
-  source: "Stima editoriale indicativa per 100 g: NON dati del locale e NON un'etichetta nutrizionale. Ingredienti, condimenti, fritti e dimensioni delle porzioni variano. Modifica i grammi prima di confermare.",
+  source: "Stima editoriale indicativa per 100 g: NON dati del locale e NON un'etichetta nutrizionale. Ingredienti, condimenti, fritti e dimensioni delle porzioni variano. Modifica i grammi prima di confermare." +
+    (item.key === "pizza-crostino" ? " Modello ipotetico: 70% pizza bianca (stima editoriale), 20% mozzarella e 10% prosciutto cotto (valori generici del catalogo). Pezzo ipotizzato da 100 g, non misurato. Altri ingredienti e variazioni in cottura non inclusi." : ""),
   per100g: {
     kcal: item.values[0], protein: item.values[1], carbs: item.values[2],
     fat: item.values[3], fiber: item.values[4],
@@ -87,13 +99,21 @@ export function parseSmartMeal(input: string, personalFoods: readonly FoodSnapsh
   const items: SmartMealItem[] = [], warnings: string[] = [];
   if (!input.trim()) return { items, warnings: ["Descrivi quello che hai mangiato."] };
   if (input.length > 1500) return { items, warnings: ["Descrizione troppo lunga (massimo 1500 caratteri)."] };
-  const chunks = input.replace(/\s+e\s+(?=(?:\d|un\b|uno\b|una\b|due\b|tre\b|quattro\b|cinque\b|sei\b))/gi, ", ")
-    .split(/[,;\n+]/).map((x) => x.trim()).filter(Boolean).slice(0, 30);
+  const chunks = splitMealText(input).slice(0, 30);
   for (const original of chunks) {
     const part = original.replace(/^(?:stasera|oggi|a pranzo|a cena|a colazione|ho mangiato|mangio|ho preso|e poi)\s+/gi, "").trim();
+    const personal = personalFoodMatches(part, personalFoods);
+    const weight = /(?:^|\s)(-?\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi)\b/i.exec(part);
+    if (personal.length > 1) { warnings.push(`«${original}»: più alimenti personali con questo nome; scegli una voce distinta.`); continue; }
+    if (personal.length === 1 && weight) {
+      const grams = Number(weight[1].replace(",", "."));
+      if (grams <= 0 || grams > 5000) { warnings.push(`«${original}»: quantità non valida.`); continue; }
+      items.push({ food: personal[0], grams, estimated: personal[0].id.startsWith("personal-rustic-"), description: "Peso dichiarato; alimento personale" });
+      continue;
+    }
     const piece = PIZZERIA.find((candidate) => candidate.pattern.test(part));
     const prefix = piece ? part.slice(0, part.search(piece.pattern)) : "";
-    const explicitGrams = /\b(\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi)\b/i.exec(part);
+    const explicitGrams = /(?:^|\s)(-?\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi)\b/i.exec(part);
     if (piece) {
       const count = quantity(prefix) ?? (part.includes("una ") || part.includes("un ") ? 1 : null);
       if (!explicitGrams && (count === null || !Number.isInteger(count) || count < 1 || count > 30)) {
@@ -137,4 +157,25 @@ export function parseSmartMeal(input: string, personalFoods: readonly FoodSnapsh
   if (chunks.length >= 30) warnings.push("Troppi alimenti nella descrizione: dividi il pasto.");
   if (!items.length && !warnings.length) warnings.push("Nessun alimento riconosciuto.");
   return { items, warnings };
+}
+
+/** Preserve decimal commas and quantity-only continuations of a rustic dish. */
+export function splitMealText(input: string): string[] {
+  const chunks = input.replace(/(\d),(?=\d)/g, "$1.")
+    .replace(/\s+e\s+(?=(?:\d|un\b|uno\b|una\b|due\b|tre\b|quattro\b|cinque\b|sei\b|sette\b|otto\b|nove\b|dieci\b))/gi, ";")
+    .split(/[,;\n+]/).map(x => x.trim()).filter(Boolean);
+  const result: string[] = [];
+  for (const chunk of chunks) {
+    if (result.length && /torta\s+(rustica|salata)|quiche/i.test(result[result.length - 1]) &&
+      /^(?:\d+(?:\.\d+)?|un[ao]?|due|tre|quattro)\s*(?:fett[ae](?:\s+(?:medie|piccole|grandi))?|g|gr|grammi)(?:\s+(?:totali|in tutto))?$/i.test(chunk)) result[result.length - 1] += " " + chunk;
+    else result.push(chunk);
+  }
+  return result;
+}
+
+export function personalFoodMatches(input: string, foods: readonly FoodSnapshot[]): FoodSnapshot[] {
+  const normalized = NORMALIZE(input);
+  const matches = foods.filter(food => normalized.includes(NORMALIZE(food.name)));
+  const length = Math.max(0, ...matches.map(food => food.name.length));
+  return matches.filter(food => food.name.length === length);
 }

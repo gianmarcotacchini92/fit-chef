@@ -41,6 +41,10 @@ export const foodSnapshotSchema = z.strictObject({
   state: text(220),
   source: text(2_000),
   per100g: nutrientsSchema,
+  rusticPortion: z.strictObject({
+    version: z.literal(1), grams, slices: z.number().int().min(1).max(30).nullable(),
+    size: z.enum(["small", "medium", "large"]), measured: z.boolean(),
+  }).optional(),
   barcode: z.string().regex(/^\d{4,20}$/, "Il codice a barre deve contenere solo cifre.").optional(),
 });
 
