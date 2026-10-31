@@ -79,7 +79,7 @@ export function buildImagePrompt(recipe: Recipe): string {
   ].join("\n");
 }
 
-async function providerJson(path: string, body: unknown, timeoutMs: number, byteLimit: number): Promise<unknown> {
+export async function providerJson(path: string, body: unknown, timeoutMs: number, byteLimit: number): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
