@@ -37,7 +37,7 @@ test("saved reuse uses current fields, persists metadata and cannot clear unreso
   await input.getByLabel(/^Confermo stessi ingredienti/).check();
   await input.getByRole("button", { name: /Usa La mia torta.*330 g/ }).click();
   await expect(input.getByRole("button", { name: /Conferma e registra/ })).toBeDisabled();
-  await expect(input.getByRole("alert")).toContainText("alimento inesistente");
+  await expect(input.getByRole("region", { name: "Risolvi 100 g alimento inesistente" })).toBeVisible();
   await describe("2 fette di torta rustica");
   await input.getByLabel(/Peso totale se conosciuto/).fill("180");
   await input.getByLabel(/^Confermo stessi ingredienti/).check();

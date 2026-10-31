@@ -41,6 +41,7 @@ export const foodSnapshotSchema = z.strictObject({
   state: text(220),
   source: text(2_000),
   per100g: nutrientsSchema,
+  mealAliases: z.array(text(100)).max(20).optional(),
   rusticPortion: z.strictObject({
     version: z.literal(1), grams, slices: z.number().int().min(1).max(30).nullable(),
     size: z.enum(["small", "medium", "large"]), measured: z.boolean(),

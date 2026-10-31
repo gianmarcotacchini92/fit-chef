@@ -179,3 +179,13 @@ export function personalFoodMatches(input: string, foods: readonly FoodSnapshot[
   const length = Math.max(0, ...matches.map(food => food.name.length));
   return matches.filter(food => food.name.length === length);
 }
+
+
+/** Reuse existing dish recognizers only when they cover the whole food name. */
+export function isSupportedEditorialMeal(query: string): boolean {
+  const text = NORMALIZE(query).replace(/^polpette in bianco$/, "polpette").replace(/^lasagn[ae] al forno$/, "lasagna");
+  return [...PIZZERIA, ...HOME_DISHES].some(candidate => {
+    const match = candidate.pattern.exec(text);
+    return match?.index === 0 && NORMALIZE(match[0]) === text;
+  });
+}
