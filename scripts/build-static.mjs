@@ -72,6 +72,7 @@ async function main() {
       NEXT_PUBLIC_FIT_STATIC: "true",
       NEXT_PUBLIC_BASE_PATH: basePath,
       NEXT_PUBLIC_RECIPE_WORKER_PATH: assets.workerPath,
+      NEXT_PUBLIC_MEAL_AI_URL: process.env.NEXT_PUBLIC_MEAL_AI_URL ?? "",
     },
   });
   if (result.error) throw result.error;
