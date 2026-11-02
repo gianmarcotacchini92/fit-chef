@@ -54,7 +54,7 @@ export async function verifyFirebaseToken(token: string, projectId: string, uid:
     const key = (await keys()).find(k => (k as JsonWebKey & { kid?: string }).kid === header.kid);
     if (!key) return false;
     const cryptoKey = await crypto.subtle.importKey("jwk", key, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
-    return crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, decode64url(pieces[2]), encoder.encode(pieces[0] + "." + pieces[1]));
+    return crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, new Uint8Array(decode64url(pieces[2])).buffer as ArrayBuffer, encoder.encode(pieces[0] + "." + pieces[1]));
   } catch { return false; }
 }
 const responseSchema = {
