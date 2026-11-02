@@ -90,7 +90,7 @@ export default {
         origin !== env.ALLOWED_ORIGIN || !env.FIREBASE_PROJECT_ID || !env.ALLOWED_FIREBASE_UID) {
       return new Response("Forbidden", { status: 403 });
     }
-    if (request.method === "OPTIONS") return json({}, 204, origin);
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { "Access-Control-Allow-Origin": origin, "Vary": "Origin", "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Fit-AI-Consent", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Max-Age": "600" } });
     if (request.method !== "POST") return json({ message: "Method not allowed" }, 405, origin);
     if (request.headers.get("X-Fit-AI-Consent") !== "true") return json({ message: "Consenso AI necessario." }, 403, origin);
     if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/json")) return json({ message: "Richiesta JSON necessaria." }, 415, origin);
