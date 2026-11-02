@@ -29,6 +29,39 @@ jobs:
           done
       - name: Install Wrangler CLI
         run: npm install --global wrangler@4
+      - name: Verify Cloudflare token and account permissions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --silent --show-error --fail-with-body \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify")" || {
+            echo "::error::Cloudflare API token verification failed. Check that CLOUDFLARE_API_TOKEN is valid."
+            exit 1
+          }
+          echo "$response" | node -e '
+            let s = ""; process.stdin.on("data", c => s += c);
+            process.stdin.on("end", () => { const r = JSON.parse(s); if (!r.success || r.result?.status !== "active") {
+              console.error("::error::Cloudflare API token is not active."); process.exit(1);
+            } console.log("Cloudflare API token is active."); });
+          '
+          account_response="$(curl --silent --show-error --fail-with-body \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}")" || {
+            echo "::error::The token cannot read the configured Cloudflare account. Check CLOUDFLARE_ACCOUNT_ID and the token account scope."
+            exit 1
+          }
+          echo "$account_response" | node -e '
+            let s = ""; process.stdin.on("data", c => s += c);
+            process.stdin.on("end", () => { const r = JSON.parse(s); if (!r.success) {
+              console.error("::error::Cloudflare account access denied."); process.exit(1);
+            } console.log("Cloudflare account access confirmed."); });
+          '
+          echo "Preflight passed. Worker deployment may still require Workers Scripts:Edit and Workers Secrets:Edit permissions."
       - name: Deploy Worker (locked down before secrets are installed)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
