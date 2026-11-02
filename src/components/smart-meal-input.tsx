@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, Plus, Trash2 } from "lucide-react";
+import { getCloudClient } from "@/lib/cloud";
 import { diaryEntrySchema, type DiaryEntry, type FoodSnapshot } from "@/lib/nutrition-diary";
 import { personalFoodMatches } from "@/lib/smart-meal";
 import { isPilotRusticPhrase, mealPhrases, resolveMealPhrase, validateMealLanguage, type MealResolution } from "@/lib/meal-understanding";
@@ -29,19 +30,20 @@ export function SmartMealInput({ date, savedFoods, onAdd, onSaveFood }: {
   const [guided, setGuided] = useState<(NonNullable<ReturnType<typeof detectRusticPie>> & { key: string })[]>([]);
   const [pending, setPending] = useState<string[]>([]);
   const [resolutions, setResolutions] = useState<(MealResolution & { key: string })[]>([]);
-  const [aiAvailable, setAiAvailable] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(Boolean(process.env.NEXT_PUBLIC_MEAL_AI_URL));
+  const cloudflareAiUrl = process.env.NEXT_PUBLIC_MEAL_AI_URL ?? "";
   const [aiConsent, setAiConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const interpretation = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    if (process.env.NEXT_PUBLIC_FIT_STATIC !== "true") {
+    if (!cloudflareAiUrl && process.env.NEXT_PUBLIC_FIT_STATIC !== "true") {
       fetch("/api/config", { signal: controller.signal }).then(async response => {
         if (response.ok) { const data = await response.json(); if (!controller.signal.aborted) setAiAvailable(data.aiTextAvailable === true); }
       }).catch(() => undefined);
     }
     return () => {controller.abort(); interpretation.current?.abort();};
-  }, []);
+  }, [cloudflareAiUrl]);
 
   const total = useMemo(() => items.reduce((sum, item) => {
     const grams = Number(item.grams.replace(",", "."));
@@ -93,8 +95,17 @@ export function SmartMealInput({ date, savedFoods, onAdd, onSaveFood }: {
     setBusy(true);
     const timer = setTimeout(() => controller.abort(), 35_000);
     try {
-      const response = await fetch("/api/meal-language", { method: "POST", signal: controller.signal,
-        headers: { "Content-Type": "application/json", "x-fit-ai-consent": "true" }, body: JSON.stringify({ text }) });
+      let token: string | undefined;
+      if (cloudflareAiUrl) {
+        const client = getCloudClient();
+        if (!client?.auth.currentUser) throw new Error("Accedi con Firebase per usare l'AI gratuita.");
+        token = await client.auth.currentUser.getIdToken();
+      }
+      if (controller.signal.aborted) return;
+      const response = await fetch(cloudflareAiUrl || "/api/meal-language", { method: "POST", signal: controller.signal,
+        headers: { "Content-Type": "application/json", "x-fit-ai-consent": "true",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ text }) });
       if (!response.ok) throw new Error("AI non disponibile");
       const result = validateMealLanguage(await response.json(), text);
       if (interpretation.current !== controller || controller.signal.aborted) return;
@@ -138,7 +149,7 @@ export function SmartMealInput({ date, savedFoods, onAdd, onSaveFood }: {
       }}/>
     </label>
     {aiAvailable && <label className="nf-check"><input type="checkbox" checked={aiConsent} disabled={busy} onChange={e => setAiConsent(e.target.checked)}/>
-      Usa AI per capire il testo: invia solo la descrizione a OpenAI, senza diario o profilo. Il servizio configurato usa API a consumo.
+      Usa AI per capire il testo: invia soltanto la descrizione del pasto a {cloudflareAiUrl ? "Cloudflare Workers AI (quota gratuita)" : "OpenAI (API a consumo)"}, senza diario o profilo. {cloudflareAiUrl ? "Richiede accesso Firebase; se la quota è esaurita torna alla revisione locale." : ""}
     </label>}
     <div className="nf-smart-meal-actions">
       <label className="nf-field">Pasto

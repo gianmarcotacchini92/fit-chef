@@ -1,0 +1,10 @@
+name = "fit-diario-meal-ai"
+main = "meal-ai-worker.ts"
+compatibility_date = "2026-10-01"
+
+[ai]
+binding = "AI"
+
+# Configure FIREBASE_PROJECT_ID, ALLOWED_FIREBASE_UID and ALLOWED_ORIGIN
+# with `npx wrangler secret put NAME` after initial deployment.
+# All three are mandatory: the Worker denies access when any is absent.

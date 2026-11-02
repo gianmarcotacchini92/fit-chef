@@ -31,6 +31,7 @@ jobs:
         env:
           NEXT_PUBLIC_FIT_STATIC: "true"
           NEXT_PUBLIC_BASE_PATH: /fit-chef
+          NEXT_PUBLIC_MEAL_AI_URL: ${{ vars.NEXT_PUBLIC_MEAL_AI_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
