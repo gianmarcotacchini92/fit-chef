@@ -226,3 +226,73 @@
   .nf-smart-meal-actions .nf-field, .nf-smart-meal-actions .nf-button { flex: 1 1 100%; }
   .nf-smart-meal-line { flex-wrap: wrap; gap: 8px; }
 }
+
+/* Main app navigation and weekly shopping list */
+.nf-app {
+  --nf-line: #dce4ee;
+  background: #f0f4f9;
+  color: #192b43;
+}
+.nf-app .nf-header {
+  max-width: none;
+  margin: 0;
+  padding: 16px clamp(16px, 4vw, 44px);
+  background: #142b49;
+  color: #fff;
+}
+.nf-app .nf-brand-icon { background: #335b8b; border-radius: 11px; }
+.nf-app .nf-brand small { color: #cedcef; }
+.nf-app .nf-nav {
+  margin: 0;
+  padding: 8px clamp(12px, 4vw, 44px);
+  max-width: none;
+  border-radius: 0;
+  background: #fff;
+  border-bottom: 1px solid var(--nf-line);
+}
+.nf-app .nf-nav button { color: #40536c; border-radius: 8px; }
+.nf-app .nf-nav button[aria-pressed="true"] {
+  color: #194b87;
+  background: #e4effc;
+  box-shadow: none;
+}
+.nf-app .nf-shell { width: 100%; max-width: 1060px; }
+.nf-app .nf-page-heading { padding-block: 10px; }
+.nf-app .nf-card { border-color: var(--nf-line); border-radius: 12px; box-shadow: none; }
+.nf-app .nf-button { background: #24568f; border-color: #24568f; }
+.nf-app .nf-button:hover { background: #193f6a; }
+.nf-app .nf-text-button { color: #194b87; }
+.nf-app .nf-diary > .nf-card:first-child { background: #fff; border-color: var(--nf-line); }
+.nf-app .nf-diary > .nf-card:first-child .nf-grid > :first-child { background: #e4effc; border-color: #c9dcf3; }
+.nf-app .nf-diary > .nf-card:first-child .nf-grid > :first-child strong { color: #194b87; }
+.nf-app .nf-diary > .nf-card:first-child progress { accent-color: #24568f; }
+.nf-shopping-items { padding: 0; margin: 0; list-style: none; }
+.nf-shopping-items li + li { border-top: 1px solid var(--nf-line); }
+.nf-shopping-items label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.nf-shopping-items label:has(input:checked) span { text-decoration: line-through; color: #53627a; }
+.nf-shopping-items input { width: 18px; height: 18px; accent-color: #24568f; }
+
+@media (min-width: 900px) {
+  .nf-app { display: grid; grid-template: auto 1fr / 190px minmax(0, 1fr); }
+  .nf-app .nf-header { grid-column: 1 / -1; }
+  .nf-app .nf-nav {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 24px 12px;
+    border-right: 1px solid var(--nf-line);
+    border-bottom: 0;
+  }
+  .nf-app .nf-nav button { flex: none; justify-content: flex-start; }
+  .nf-app .nf-shell { margin: 0 auto; }
+}

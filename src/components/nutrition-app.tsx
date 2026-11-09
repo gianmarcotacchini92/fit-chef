@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useState, type SetStateAction } from "react";
 import { signOut } from "firebase/auth";
 import { z } from "zod";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Settings2, Utensils } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Settings2, ShoppingBasket, Utensils } from "lucide-react";
 import { DEFAULT_MEAL_INPUT } from "@/lib/defaults";
 import { getCloudClient } from "@/lib/cloud";
 import { clearCloudBinding } from "@/lib/cloud-storage";
@@ -21,14 +21,18 @@ import { NutritionWeek } from "./nutrition-week";
 import { RecipeBuilder } from "./recipe-builder";
 import { WeeklyPlanPreview } from "./weekly-plan-preview";
 
+import { ShoppingList } from "./shopping-list";
+
 const STORAGE_KEY = "fit-chef.workspace.v1";
 const MIGRATION_KEY = "fit-chef.local-plan-migration.v1";
 const STATIC_SITE = process.env.NEXT_PUBLIC_FIT_STATIC === "true";
-type Tab = "diary" | "profile" | "week" | "archive";
+type Tab = "diary" | "profile" | "week" | "archive" | "shopping";
 const tabs = [
   { id: "diary", title: "Diario", icon: Utensils },
-  { id: "week", title: "Dieta settimanale", icon: CalendarDays },
-  { id: "archive", title: "Ricette e alimenti", icon: ClipboardList },
+  { id: "week", title: "Piano", icon: CalendarDays },
+  { id: "shopping", title: "Spesa", icon: ShoppingBasket },
+  { id: "archive", title: "Ricette", icon: ClipboardList },
+  { id: "profile", title: "Profilo", icon: Settings2 },
 ] as const;
 
 function moveLocalDate(value: string, offset: number): string {
@@ -78,7 +82,6 @@ export function NutritionApp() {
   const [storageError, setStorageError] = useState("");
   const [notice, setNotice] = useState("");
   const [tab, setTab] = useState<Tab>("diary");
-  const [recipeIntro, setRecipeIntro] = useState(false);
   const [date, setDate] = useState("");
   const [archiveMeal, setArchiveMeal] = useState<WeekMeal>("lunch");
   const [busy, setBusy] = useState(false);
@@ -248,7 +251,6 @@ export function NutritionApp() {
     <header className="nf-header">
       <a className="nf-brand" href="#main-content"><span className="nf-brand-icon"><Utensils size={22}/></span><span>FIT <strong>Diario</strong><small>Quello che mangi. Senza complicazioni.</small></span></a>
       <div className="nf-header-tools">
-        <button type="button" className="nf-settings-link" aria-pressed={tab === "profile"} onClick={() => { setTab("profile"); setNotice(""); }}><Settings2 size={18}/>Profilo e obiettivi</button>
         <CloudAccount state={workspace} onRestore={setWorkspace} onMessage={setNotice} ready={ready && writable} disabled={!writable || busy} onBusyChange={setCloudBusy}/>
       </div>
     </header>
@@ -259,25 +261,14 @@ export function NutritionApp() {
       {store.error && <div className="nf-alert" role="alert">{store.error}</div>}
       {storageError && <div className="nf-alert" role="alert"><p>{storageError}</p><button onClick={exportWorkspace}>Esporta copia locale</button><button onClick={() => void resetLocal()}>Ripristina dispositivo</button></div>}
       <div className="nf-page-heading">
-        <div><p className="nf-eyebrow">MY NUTRITION · FIT DIARIO</p><h1>{tab === "diary" ? "La mia giornata" : tab === "profile" ? "Profilo e TDEE" : tabs.find((entry) => entry.id === tab)?.title}</h1>
+        <div><h1>{tab === "diary" ? "La mia giornata" : tab === "profile" ? "Profilo e TDEE" : tabs.find((entry) => entry.id === tab)?.title}</h1>
         <p className="nf-muted">{tab === "diary" ? "Registra i pasti e controlla il piano in un unico posto." : "I tuoi dati restano salvati nel tuo archivio personale."}</p></div>
-        <div className="nf-date-switcher">
+        {(tab === "diary" || tab === "week" || tab === "archive") && <div className="nf-date-switcher">
           <button type="button" aria-label="Giorno precedente" onClick={() => setDate((current) => moveLocalDate(current, -1))} disabled={!date}><ChevronLeft size={18}/></button>
           <label className="nf-date nf-field">Data del diario<input type="date" required value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }}/></label>
           <button type="button" aria-label="Giorno successivo" onClick={() => setDate((current) => moveLocalDate(current, 1))} disabled={!date}><ChevronRight size={18}/></button>
-        </div>
+        </div>}
       </div>
-      {tab === "diary" && <div className="nf-quick-actions" aria-label="Azioni rapide">
-        <button type="button" className="nf-quick-action" onClick={() => { setTab("diary"); setNotice("Apri Aggiungi alimenti per cercare o scansionare un prodotto."); }}>
-          <Utensils size={18}/> Registra un alimento
-        </button>
-        <button type="button" className="nf-quick-action" onClick={() => { setRecipeIntro(true); setTab("archive"); setNotice(""); }}>
-          <ClipboardList size={18}/> Crea una ricetta
-        </button>
-        <button type="button" className="nf-quick-action" onClick={() => { setTab("week"); setNotice(""); }}>
-          <CalendarDays size={18}/> Vedi la dieta
-        </button>
-      </div>}
       <fieldset className="nf-workspace" disabled={!writable || busy || cloudBusy}>
         {tab === "diary" && <>
           <WeeklyPlanPreview date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} onOpen={(day) => {
@@ -310,8 +301,9 @@ export function NutritionApp() {
               </div>)}</div>
           </section>
         </>}
+        {tab === "shopping" && <ShoppingList state={workspace.weeklyDiet ?? initialWeeklyDietState()} savedFoods={nutrition.savedFoods ?? []} openPlan={() => setTab("week")}/>}
         {tab === "week" && <NutritionWeek date={date} state={workspace.weeklyDiet ?? initialWeeklyDietState()} targets={targetsOnDate(nutrition, date)} weightKg={nutrition.profile?.weightKg} onChange={(state) => setWorkspace((current) => ({ ...current, weeklyDiet: state }))} savedFoods={nutrition.savedFoods ?? []} onAdd={addEntries}/>}
-        {tab === "archive" && <>{recipeIntro && <div className="nf-alert" role="status"><strong>Qui crei una ricetta da zero.</strong> Aggiungi gli ingredienti con i grammi, indica il peso finale e premi «Salva ricetta negli alimenti personali». Un pasto salvato è invece solo una combinazione da registrare nel diario. <button type="button" onClick={() => setRecipeIntro(false)}>Ho capito</button></div>}<RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
+        {tab === "archive" && <><RecipeBuilder savedFoods={nutrition.savedFoods ?? []} onSave={saveFood}/><section className="nf-card"><h2>Le ricette che avevi salvato</h2><p className="nf-muted">Non abbiamo eliminato il tuo lavoro precedente. Puoi registrare una porzione di una ricetta nel nuovo diario, senza generare immagini o chiamare servizi AI.</p>
           <label className="nf-field">Pasto per le ricette<select value={archiveMeal} onChange={(event) => setArchiveMeal(z.enum(["breakfast", "lunch", "snack", "dinner"]).parse(event.target.value))}>
             <option value="breakfast">Colazione</option><option value="lunch">Pranzo</option><option value="snack">Spuntino</option><option value="dinner">Cena</option>
           </select></label>
